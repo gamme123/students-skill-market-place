@@ -15,27 +15,35 @@ export interface Service {
 }
 
 export const categories = [
+  // Coding & Tech Skills (primary focus)
   { id: "web-dev", name: "Web Development", icon: "💻", count: 124 },
+  { id: "mobile-dev", name: "Mobile App Development", icon: "📱", count: 97 },
+  { id: "programming", name: "Programming Help", icon: "⚙️", count: 145 },
+  { id: "python", name: "Python & Automation", icon: "🐍", count: 168 },
+  { id: "data-science", name: "Data Science & AI", icon: "🤖", count: 112 },
+  { id: "cybersecurity", name: "Cybersecurity", icon: "🔐", count: 74 },
+  { id: "devops", name: "DevOps & Cloud", icon: "☁️", count: 63 },
+  { id: "blockchain", name: "Blockchain & Web3", icon: "⛓️", count: 48 },
+  { id: "ict", name: "ICT", icon: "🖥️", count: 139 },
+  { id: "game-dev", name: "Game Development", icon: "🎮", count: 56 },
+  // Creative & Digital Skills
   { id: "graphic-design", name: "Graphic Design", icon: "🎨", count: 89 },
+  { id: "ui-ux", name: "UI/UX Design", icon: "🎯", count: 82 },
+  { id: "video-editing", name: "Video Editing", icon: "🎬", count: 52 },
+  { id: "digital-marketing", name: "Digital Marketing", icon: "📈", count: 71 },
+  // Academic & Skill-building
   { id: "tutoring", name: "Tutoring", icon: "📚", count: 156 },
   { id: "assignment-help", name: "Assignment Help", icon: "✍️", count: 203 },
-  { id: "translation", name: "Translation", icon: "🌍", count: 67 },
-  { id: "programming", name: "Programming Help", icon: "⚙️", count: 145 },
-  { id: "video-editing", name: "Video Editing", icon: "🎬", count: 52 },
   { id: "writing", name: "Writing & Editing", icon: "📝", count: 98 },
+  { id: "translation", name: "Translation", icon: "🌍", count: 67 },
+  // Natural Science (secondary school)
   { id: "mathematics", name: "Mathematics", icon: "📐", count: 178 },
   { id: "physics", name: "Physics", icon: "⚛️", count: 134 },
   { id: "chemistry", name: "Chemistry", icon: "🧪", count: 112 },
   { id: "biology", name: "Biology", icon: "🧬", count: 127 },
+  // Ethiopian Education
   { id: "english", name: "English Language", icon: "🇬🇧", count: 165 },
   { id: "amharic", name: "Amharic (አማርኛ)", icon: "🇪🇹", count: 143 },
-  { id: "history", name: "History", icon: "🏛️", count: 88 },
-  { id: "geography", name: "Geography", icon: "🗺️", count: 76 },
-  { id: "civics", name: "Civics & Ethics", icon: "⚖️", count: 94 },
-  { id: "economics", name: "Economics", icon: "📊", count: 105 },
-  { id: "business", name: "Business Studies", icon: "💼", count: 82 },
-  { id: "ict", name: "ICT", icon: "🖥️", count: 139 },
-  { id: "general-science", name: "General Science", icon: "🔬", count: 97 },
   { id: "aptitude", name: "Aptitude & Entrance Exam", icon: "🎯", count: 210 },
 ];
 
