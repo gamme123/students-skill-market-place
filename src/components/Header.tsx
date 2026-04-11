@@ -1,10 +1,20 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Search, Menu, X } from "lucide-react";
+import { Search, Menu, X, LogOut, User } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const Header = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("Signed out");
+    navigate("/");
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-lg">
@@ -32,8 +42,29 @@ const Header = () => {
               <Search className="h-4 w-4" />
             </Link>
           </Button>
-          <Button variant="outline" size="sm">Sign In</Button>
-          <Button size="sm">Join Free</Button>
+          {user ? (
+            <>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/profile">
+                  <User className="mr-1 h-3.5 w-3.5" />
+                  Profile
+                </Link>
+              </Button>
+              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                <LogOut className="mr-1 h-3.5 w-3.5" />
+                Sign Out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/auth">Sign In</Link>
+              </Button>
+              <Button size="sm" asChild>
+                <Link to="/auth?signup=true">Join Free</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
@@ -51,8 +82,25 @@ const Header = () => {
               How It Works
             </Link>
             <div className="flex gap-2 pt-2">
-              <Button variant="outline" size="sm" className="flex-1">Sign In</Button>
-              <Button size="sm" className="flex-1">Join Free</Button>
+              {user ? (
+                <>
+                  <Button variant="outline" size="sm" className="flex-1" asChild>
+                    <Link to="/profile" onClick={() => setMobileOpen(false)}>Profile</Link>
+                  </Button>
+                  <Button size="sm" className="flex-1" onClick={() => { handleSignOut(); setMobileOpen(false); }}>
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" size="sm" className="flex-1" asChild>
+                    <Link to="/auth" onClick={() => setMobileOpen(false)}>Sign In</Link>
+                  </Button>
+                  <Button size="sm" className="flex-1" asChild>
+                    <Link to="/auth?signup=true" onClick={() => setMobileOpen(false)}>Join Free</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </nav>
         </div>
