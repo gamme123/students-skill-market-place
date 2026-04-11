@@ -12,13 +12,18 @@ const ServiceCard = ({ service }: { service: Service }) => (
       <div className="flex h-full items-center justify-center text-4xl">
         {(() => {
           const iconMap: Record<string, string> = {
-            "Web Development": "💻", "Graphic Design": "🎨", "Tutoring": "📚",
+            "Web Development": "💻", "Mobile App Development": "📱",
+            "Graphic Design": "🎨", "Tutoring": "📚",
             "Translation": "🌍", "Programming Help": "⚙️", "Video Editing": "🎬",
             "Writing & Editing": "📝", "Mathematics": "📐", "Physics": "⚛️",
             "Chemistry": "🧪", "Biology": "🧬", "English Language": "🇬🇧",
             "Amharic (አማርኛ)": "🇪🇹", "History": "🏛️", "Geography": "🗺️",
             "Civics & Ethics": "⚖️", "Economics": "📊", "Business Studies": "💼",
             "ICT": "🖥️", "General Science": "🔬", "Aptitude & Entrance Exam": "🎯",
+            "Python & Automation": "🐍", "Data Science & AI": "🤖",
+            "Cybersecurity": "🔐", "DevOps & Cloud": "☁️",
+            "Blockchain & Web3": "⛓️", "Game Development": "🎮",
+            "UI/UX Design": "🎯", "Digital Marketing": "📈",
           };
           return iconMap[service.category] || "📖";
         })()}
