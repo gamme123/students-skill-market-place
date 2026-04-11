@@ -10,12 +10,18 @@ const ServiceCard = ({ service }: { service: Service }) => (
   >
     <div className="aspect-video w-full overflow-hidden bg-secondary">
       <div className="flex h-full items-center justify-center text-4xl">
-        {service.category === "Web Development" && "💻"}
-        {service.category === "Graphic Design" && "🎨"}
-        {service.category === "Tutoring" && "📚"}
-        {service.category === "Translation" && "🌍"}
-        {service.category === "Programming Help" && "⚙️"}
-        {service.category === "Video Editing" && "🎬"}
+        {(() => {
+          const iconMap: Record<string, string> = {
+            "Web Development": "💻", "Graphic Design": "🎨", "Tutoring": "📚",
+            "Translation": "🌍", "Programming Help": "⚙️", "Video Editing": "🎬",
+            "Writing & Editing": "📝", "Mathematics": "📐", "Physics": "⚛️",
+            "Chemistry": "🧪", "Biology": "🧬", "English Language": "🇬🇧",
+            "Amharic (አማርኛ)": "🇪🇹", "History": "🏛️", "Geography": "🗺️",
+            "Civics & Ethics": "⚖️", "Economics": "📊", "Business Studies": "💼",
+            "ICT": "🖥️", "General Science": "🔬", "Aptitude & Entrance Exam": "🎯",
+          };
+          return iconMap[service.category] || "📖";
+        })()}
       </div>
     </div>
 
