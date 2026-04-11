@@ -23,6 +23,20 @@ export const categories = [
   { id: "programming", name: "Programming Help", icon: "⚙️", count: 145 },
   { id: "video-editing", name: "Video Editing", icon: "🎬", count: 52 },
   { id: "writing", name: "Writing & Editing", icon: "📝", count: 98 },
+  { id: "mathematics", name: "Mathematics", icon: "📐", count: 178 },
+  { id: "physics", name: "Physics", icon: "⚛️", count: 134 },
+  { id: "chemistry", name: "Chemistry", icon: "🧪", count: 112 },
+  { id: "biology", name: "Biology", icon: "🧬", count: 127 },
+  { id: "english", name: "English Language", icon: "🇬🇧", count: 165 },
+  { id: "amharic", name: "Amharic (አማርኛ)", icon: "🇪🇹", count: 143 },
+  { id: "history", name: "History", icon: "🏛️", count: 88 },
+  { id: "geography", name: "Geography", icon: "🗺️", count: 76 },
+  { id: "civics", name: "Civics & Ethics", icon: "⚖️", count: 94 },
+  { id: "economics", name: "Economics", icon: "📊", count: 105 },
+  { id: "business", name: "Business Studies", icon: "💼", count: 82 },
+  { id: "ict", name: "ICT", icon: "🖥️", count: 139 },
+  { id: "general-science", name: "General Science", icon: "🔬", count: 97 },
+  { id: "aptitude", name: "Aptitude & Entrance Exam", icon: "🎯", count: 210 },
 ];
 
 export const featuredServices: Service[] = [
