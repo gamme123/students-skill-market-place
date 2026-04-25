@@ -14,37 +14,69 @@ export interface Service {
   tags: string[];
 }
 
-export const categories = [
-  // Coding & Tech Skills (primary focus)
-  { id: "web-dev", name: "Web Development", icon: "💻", count: 124 },
-  { id: "mobile-dev", name: "Mobile App Development", icon: "📱", count: 97 },
-  { id: "programming", name: "Programming Help", icon: "⚙️", count: 145 },
-  { id: "python", name: "Python & Automation", icon: "🐍", count: 168 },
-  { id: "data-science", name: "Data Science & AI", icon: "🤖", count: 112 },
-  { id: "cybersecurity", name: "Cybersecurity", icon: "🔐", count: 74 },
-  { id: "devops", name: "DevOps & Cloud", icon: "☁️", count: 63 },
-  { id: "blockchain", name: "Blockchain & Web3", icon: "⛓️", count: 48 },
-  { id: "ict", name: "ICT", icon: "🖥️", count: 139 },
-  { id: "game-dev", name: "Game Development", icon: "🎮", count: 56 },
-  // Creative & Digital Skills
-  { id: "graphic-design", name: "Graphic Design", icon: "🎨", count: 89 },
-  { id: "ui-ux", name: "UI/UX Design", icon: "🎯", count: 82 },
-  { id: "video-editing", name: "Video Editing", icon: "🎬", count: 52 },
-  { id: "digital-marketing", name: "Digital Marketing", icon: "📈", count: 71 },
-  // Academic & Skill-building
-  { id: "tutoring", name: "Tutoring", icon: "📚", count: 156 },
-  { id: "assignment-help", name: "Assignment Help", icon: "✍️", count: 203 },
-  { id: "writing", name: "Writing & Editing", icon: "📝", count: 98 },
-  { id: "translation", name: "Translation", icon: "🌍", count: 67 },
-  // Natural Science (secondary school)
-  { id: "mathematics", name: "Mathematics", icon: "📐", count: 178 },
-  { id: "physics", name: "Physics", icon: "⚛️", count: 134 },
-  { id: "chemistry", name: "Chemistry", icon: "🧪", count: 112 },
-  { id: "biology", name: "Biology", icon: "🧬", count: 127 },
-  // Ethiopian Education
-  { id: "english", name: "English Language", icon: "🇬🇧", count: 165 },
-  { id: "amharic", name: "Amharic (አማርኛ)", icon: "🇪🇹", count: 143 },
-  { id: "aptitude", name: "Aptitude & Entrance Exam", icon: "🎯", count: 210 },
+export interface Category {
+  id: string;
+  name: string;
+  icon: string;
+  count: number;
+}
+
+export const categoryIconMap: Record<string, string> = {
+  "Web Development": "\u{1F4BB}",
+  "Mobile App Development": "\u{1F4F1}",
+  "Programming Help": "\u2699\uFE0F",
+  "Python & Automation": "\u{1F40D}",
+  "Data Science & AI": "\u{1F916}",
+  Cybersecurity: "\u{1F510}",
+  "DevOps & Cloud": "\u2601\uFE0F",
+  "Blockchain & Web3": "\u26D3\uFE0F",
+  ICT: "\u{1F5A5}\uFE0F",
+  "Game Development": "\u{1F3AE}",
+  "Graphic Design": "\u{1F3A8}",
+  "UI/UX Design": "\u{1F58C}\uFE0F",
+  "Video Editing": "\u{1F3AC}",
+  "Digital Marketing": "\u{1F4C8}",
+  Tutoring: "\u{1F4DA}",
+  "Assignment Help": "\u270D\uFE0F",
+  "Writing & Editing": "\u{1F4DD}",
+  Translation: "\u{1F310}",
+  Mathematics: "\u{1F4D0}",
+  Physics: "\u269B\uFE0F",
+  Chemistry: "\u{1F9EA}",
+  Biology: "\u{1F9EC}",
+  "English Language": "\u{1F1EC}\u{1F1E7}",
+  "Amharic (Amharigna)": "\u{1F1EA}\u{1F1F9}",
+  "Aptitude & Entrance Exam": "\u{1F3AF}",
+};
+
+export const getCategoryIcon = (category: string) => categoryIconMap[category] ?? "\u{1F4D6}";
+
+export const categories: Category[] = [
+  { id: "web-dev", name: "Web Development", icon: getCategoryIcon("Web Development"), count: 124 },
+  { id: "mobile-dev", name: "Mobile App Development", icon: getCategoryIcon("Mobile App Development"), count: 97 },
+  { id: "programming", name: "Programming Help", icon: getCategoryIcon("Programming Help"), count: 145 },
+  { id: "python", name: "Python & Automation", icon: getCategoryIcon("Python & Automation"), count: 168 },
+  { id: "data-science", name: "Data Science & AI", icon: getCategoryIcon("Data Science & AI"), count: 112 },
+  { id: "cybersecurity", name: "Cybersecurity", icon: getCategoryIcon("Cybersecurity"), count: 74 },
+  { id: "devops", name: "DevOps & Cloud", icon: getCategoryIcon("DevOps & Cloud"), count: 63 },
+  { id: "blockchain", name: "Blockchain & Web3", icon: getCategoryIcon("Blockchain & Web3"), count: 48 },
+  { id: "ict", name: "ICT", icon: getCategoryIcon("ICT"), count: 139 },
+  { id: "game-dev", name: "Game Development", icon: getCategoryIcon("Game Development"), count: 56 },
+  { id: "graphic-design", name: "Graphic Design", icon: getCategoryIcon("Graphic Design"), count: 89 },
+  { id: "ui-ux", name: "UI/UX Design", icon: getCategoryIcon("UI/UX Design"), count: 82 },
+  { id: "video-editing", name: "Video Editing", icon: getCategoryIcon("Video Editing"), count: 52 },
+  { id: "digital-marketing", name: "Digital Marketing", icon: getCategoryIcon("Digital Marketing"), count: 71 },
+  { id: "tutoring", name: "Tutoring", icon: getCategoryIcon("Tutoring"), count: 156 },
+  { id: "assignment-help", name: "Assignment Help", icon: getCategoryIcon("Assignment Help"), count: 203 },
+  { id: "writing", name: "Writing & Editing", icon: getCategoryIcon("Writing & Editing"), count: 98 },
+  { id: "translation", name: "Translation", icon: getCategoryIcon("Translation"), count: 67 },
+  { id: "mathematics", name: "Mathematics", icon: getCategoryIcon("Mathematics"), count: 178 },
+  { id: "physics", name: "Physics", icon: getCategoryIcon("Physics"), count: 134 },
+  { id: "chemistry", name: "Chemistry", icon: getCategoryIcon("Chemistry"), count: 112 },
+  { id: "biology", name: "Biology", icon: getCategoryIcon("Biology"), count: 127 },
+  { id: "english", name: "English Language", icon: getCategoryIcon("English Language"), count: 165 },
+  { id: "amharic", name: "Amharic (Amharigna)", icon: getCategoryIcon("Amharic (Amharigna)"), count: 143 },
+  { id: "aptitude", name: "Aptitude & Entrance Exam", icon: getCategoryIcon("Aptitude & Entrance Exam"), count: 210 },
 ];
 
 export const featuredServices: Service[] = [
@@ -80,11 +112,11 @@ export const featuredServices: Service[] = [
   },
   {
     id: "3",
-    title: "Python & Data Science tutoring",
+    title: "Python and data science tutoring",
     description: "One-on-one tutoring sessions for Python programming, data analysis with pandas, and machine learning basics.",
     category: "Tutoring",
     price: 25,
-    rating: 5.0,
+    rating: 5,
     reviewCount: 31,
     sellerName: "Marcus Johnson",
     sellerAvatar: "MJ",
@@ -95,8 +127,8 @@ export const featuredServices: Service[] = [
   },
   {
     id: "4",
-    title: "Translate documents EN ↔ ES",
-    description: "Professional translation between English and Spanish. Academic papers, essays, presentations, and more.",
+    title: "Translate documents between English and Spanish",
+    description: "Professional translation between English and Spanish for academic papers, essays, presentations, and more.",
     category: "Translation",
     price: 15,
     rating: 4.7,
@@ -111,7 +143,7 @@ export const featuredServices: Service[] = [
   {
     id: "5",
     title: "Debug and fix your code",
-    description: "Send me your buggy code and I'll fix it. Specializing in JavaScript, Python, Java, and C++.",
+    description: "Send me your buggy code and I will fix it. Specializing in JavaScript, Python, Java, and C++.",
     category: "Programming Help",
     price: 20,
     rating: 4.9,
@@ -125,7 +157,7 @@ export const featuredServices: Service[] = [
   },
   {
     id: "6",
-    title: "Edit your YouTube videos professionally",
+    title: "Edit your videos professionally",
     description: "Professional video editing with transitions, color grading, sound design, and motion graphics.",
     category: "Video Editing",
     price: 40,
@@ -140,8 +172,8 @@ export const featuredServices: Service[] = [
   },
   {
     id: "7",
-    title: "Grade 11 & 12 Mathematics Tutoring",
-    description: "Expert tutoring in Ethiopian secondary school mathematics including calculus, algebra, trigonometry, and geometry. Aligned with the Ethiopian curriculum.",
+    title: "Grade 11 and 12 mathematics tutoring",
+    description: "Expert tutoring in Ethiopian secondary school mathematics including calculus, algebra, trigonometry, and geometry.",
     category: "Mathematics",
     price: 20,
     rating: 4.9,
@@ -156,7 +188,7 @@ export const featuredServices: Service[] = [
   {
     id: "8",
     title: "Physics tutoring for Ethiopian students",
-    description: "Comprehensive physics tutoring covering mechanics, electricity, magnetism, and modern physics for Grade 9–12 Ethiopian curriculum.",
+    description: "Comprehensive physics tutoring covering mechanics, electricity, magnetism, and modern physics for grades 9 to 12.",
     category: "Physics",
     price: 20,
     rating: 4.8,
@@ -170,8 +202,8 @@ export const featuredServices: Service[] = [
   },
   {
     id: "9",
-    title: "Chemistry help – Organic & Inorganic",
-    description: "Grade 11 & 12 chemistry tutoring: atomic structure, chemical bonding, organic chemistry, and lab report assistance.",
+    title: "Chemistry help for organic and inorganic topics",
+    description: "Grade 11 and 12 chemistry tutoring covering atomic structure, bonding, organic chemistry, and lab report support.",
     category: "Chemistry",
     price: 18,
     rating: 4.7,
@@ -185,8 +217,8 @@ export const featuredServices: Service[] = [
   },
   {
     id: "10",
-    title: "Biology tutoring & assignment help",
-    description: "Ethiopian curriculum biology: cell biology, genetics, ecology, and human anatomy for Grade 9–12 students.",
+    title: "Biology tutoring and assignment help",
+    description: "Ethiopian curriculum biology support covering cell biology, genetics, ecology, and human anatomy.",
     category: "Biology",
     price: 18,
     rating: 4.8,
@@ -200,11 +232,11 @@ export const featuredServices: Service[] = [
   },
   {
     id: "11",
-    title: "Amharic essay writing & grammar help",
-    description: "Professional Amharic language tutoring: grammar, essay writing, literature analysis, and creative writing for secondary students.",
-    category: "Amharic (አማርኛ)",
+    title: "Amharic essay writing and grammar help",
+    description: "Professional Amharic language tutoring covering grammar, essay writing, literature analysis, and creative writing.",
+    category: "Amharic (Amharigna)",
     price: 15,
-    rating: 5.0,
+    rating: 5,
     reviewCount: 36,
     sellerName: "Dawit Mekonnen",
     sellerAvatar: "DM",
@@ -215,8 +247,8 @@ export const featuredServices: Service[] = [
   },
   {
     id: "12",
-    title: "English language & literature tutoring",
-    description: "Improve your English skills: reading comprehension, essay writing, grammar, and literature analysis for Ethiopian secondary students.",
+    title: "English language and literature tutoring",
+    description: "Improve your English skills with help on reading comprehension, essay writing, grammar, and literature analysis.",
     category: "English Language",
     price: 15,
     rating: 4.6,
@@ -230,8 +262,8 @@ export const featuredServices: Service[] = [
   },
   {
     id: "16",
-    title: "ICT & Computer Science tutoring",
-    description: "Learn programming basics, MS Office, networking, and web design aligned with the Ethiopian ICT curriculum for secondary students.",
+    title: "ICT and computer science tutoring",
+    description: "Learn programming basics, office tools, networking, and web design aligned with the Ethiopian ICT curriculum.",
     category: "ICT",
     price: 20,
     rating: 4.9,
@@ -245,11 +277,11 @@ export const featuredServices: Service[] = [
   },
   {
     id: "17",
-    title: "University Entrance Exam Preparation",
-    description: "Comprehensive Ethiopian university entrance exam (EUEE) preparation covering all subjects: Math, English, Aptitude, and Natural/Social Sciences.",
+    title: "University entrance exam preparation",
+    description: "Comprehensive Ethiopian university entrance exam support covering math, English, aptitude, and science subjects.",
     category: "Aptitude & Entrance Exam",
     price: 30,
-    rating: 5.0,
+    rating: 5,
     reviewCount: 89,
     sellerName: "Bereket Assefa",
     sellerAvatar: "BA",
@@ -261,7 +293,7 @@ export const featuredServices: Service[] = [
   {
     id: "19",
     title: "Build mobile apps with React Native",
-    description: "Learn to build cross-platform mobile apps with React Native. From setup to deployment on App Store and Google Play.",
+    description: "Learn to build cross-platform mobile apps with React Native from setup to deployment.",
     category: "Mobile App Development",
     price: 45,
     rating: 4.8,
@@ -275,8 +307,8 @@ export const featuredServices: Service[] = [
   },
   {
     id: "20",
-    title: "Python automation & scripting",
-    description: "Automate repetitive tasks with Python scripts. Web scraping, file processing, API integration, and bot development.",
+    title: "Python automation and scripting",
+    description: "Automate repetitive tasks with Python scripts for scraping, file processing, API integration, and bots.",
     category: "Python & Automation",
     price: 25,
     rating: 4.9,
@@ -290,8 +322,8 @@ export const featuredServices: Service[] = [
   },
   {
     id: "21",
-    title: "Machine Learning & AI projects",
-    description: "Data science tutoring and project help: pandas, scikit-learn, TensorFlow, data visualization, and ML model building.",
+    title: "Machine learning and AI project help",
+    description: "Data science tutoring and project help with pandas, scikit-learn, TensorFlow, and data visualization.",
     category: "Data Science & AI",
     price: 35,
     rating: 4.9,
@@ -305,8 +337,8 @@ export const featuredServices: Service[] = [
   },
   {
     id: "22",
-    title: "UI/UX Design with Figma",
-    description: "Learn modern UI/UX design: wireframing, prototyping, user research, and design systems using Figma.",
+    title: "UI and UX design with Figma",
+    description: "Learn modern UI and UX design with wireframing, prototyping, research, and design systems in Figma.",
     category: "UI/UX Design",
     price: 30,
     rating: 4.7,
@@ -320,8 +352,8 @@ export const featuredServices: Service[] = [
   },
   {
     id: "23",
-    title: "Cybersecurity fundamentals & ethical hacking",
-    description: "Learn network security, penetration testing, and ethical hacking basics. Perfect for beginners and CTF enthusiasts.",
+    title: "Cybersecurity fundamentals and ethical hacking",
+    description: "Learn network security, penetration testing, and ethical hacking basics for beginners and CTF enthusiasts.",
     category: "Cybersecurity",
     price: 30,
     rating: 4.8,
@@ -335,8 +367,8 @@ export const featuredServices: Service[] = [
   },
   {
     id: "24",
-    title: "Digital marketing & social media strategy",
-    description: "Learn SEO, content marketing, social media ads, and analytics. Grow your brand or help clients grow theirs.",
+    title: "Digital marketing and social media strategy",
+    description: "Learn SEO, content marketing, social media ads, and analytics to grow a brand or client business.",
     category: "Digital Marketing",
     price: 20,
     rating: 4.6,
@@ -351,7 +383,7 @@ export const featuredServices: Service[] = [
   {
     id: "25",
     title: "Game development with Unity",
-    description: "Build 2D and 3D games using Unity and C#. From game mechanics to publishing on Steam or mobile stores.",
+    description: "Build 2D and 3D games using Unity and C# from game mechanics to publishing.",
     category: "Game Development",
     price: 40,
     rating: 4.7,
@@ -365,8 +397,8 @@ export const featuredServices: Service[] = [
   },
   {
     id: "26",
-    title: "DevOps & cloud deployment help",
-    description: "Learn Docker, AWS, CI/CD pipelines, and cloud deployment. Get your projects production-ready.",
+    title: "DevOps and cloud deployment help",
+    description: "Learn Docker, AWS, CI/CD pipelines, and cloud deployment to get projects production-ready.",
     category: "DevOps & Cloud",
     price: 35,
     rating: 4.8,
@@ -380,8 +412,8 @@ export const featuredServices: Service[] = [
   },
   {
     id: "27",
-    title: "Blockchain & smart contract development",
-    description: "Learn Solidity, smart contracts, DApps, and Web3 development. Build on Ethereum and other blockchains.",
+    title: "Blockchain and smart contract development",
+    description: "Learn Solidity, smart contracts, DApps, and Web3 development on Ethereum and similar chains.",
     category: "Blockchain & Web3",
     price: 40,
     rating: 4.6,

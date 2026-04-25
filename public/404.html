@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>SkillSwap - Student Skill Marketplace</title>
+    <script>
+      (function () {
+        var pathSegmentsToKeep = 1;
+        var location = window.location;
+        var basePath = location.pathname.split("/").slice(0, 1 + pathSegmentsToKeep).join("/");
+        var routePath = location.pathname.slice(basePath.length) || "/";
+        var query = location.search ? location.search.slice(1).replace(/&/g, "~and~") : "";
+        var target = basePath + "/?p=" + encodeURIComponent(routePath) + (query ? "&" + query : "") + location.hash;
+
+        location.replace(target);
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>

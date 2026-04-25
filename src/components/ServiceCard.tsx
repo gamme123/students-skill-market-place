@@ -1,73 +1,69 @@
 import { Link } from "react-router-dom";
-import { Star, Clock } from "lucide-react";
+import { ArrowUpRight, Star, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import type { Service } from "@/data/services";
+import { getCategoryIcon, type Service } from "@/data/services";
 
 const ServiceCard = ({ service }: { service: Service }) => (
   <Link
     to={`/service/${service.id}`}
-    className="group block overflow-hidden rounded-xl border border-border bg-card shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover"
+    className="group block overflow-hidden rounded-[1.75rem] border border-border bg-card shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:shadow-card-hover"
   >
-    <div className="aspect-video w-full overflow-hidden bg-secondary">
-      <div className="flex h-full items-center justify-center text-4xl">
-        {(() => {
-          const iconMap: Record<string, string> = {
-            "Web Development": "💻", "Mobile App Development": "📱",
-            "Graphic Design": "🎨", "Tutoring": "📚",
-            "Translation": "🌍", "Programming Help": "⚙️", "Video Editing": "🎬",
-            "Writing & Editing": "📝", "Mathematics": "📐", "Physics": "⚛️",
-            "Chemistry": "🧪", "Biology": "🧬", "English Language": "🇬🇧",
-            "Amharic (አማርኛ)": "🇪🇹", "History": "🏛️", "Geography": "🗺️",
-            "Civics & Ethics": "⚖️", "Economics": "📊", "Business Studies": "💼",
-            "ICT": "🖥️", "General Science": "🔬", "Aptitude & Entrance Exam": "🎯",
-            "Python & Automation": "🐍", "Data Science & AI": "🤖",
-            "Cybersecurity": "🔐", "DevOps & Cloud": "☁️",
-            "Blockchain & Web3": "⛓️", "Game Development": "🎮",
-            "UI/UX Design": "🎯", "Digital Marketing": "📈",
-          };
-          return iconMap[service.category] || "📖";
-        })()}
+    <div className="relative aspect-video overflow-hidden bg-[linear-gradient(135deg,hsl(var(--secondary))_0%,white_100%)]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(15,118,110,0.12),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(249,115,22,0.16),transparent_26%)]" />
+      <div className="relative flex h-full flex-col justify-between p-5">
+        <div className="flex items-start justify-between">
+          <Badge variant="secondary" className="rounded-full px-3 py-1 text-[11px] font-medium">
+            {service.category}
+          </Badge>
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/80 text-2xl shadow-sm">
+            {getCategoryIcon(service.category)}
+          </div>
+        </div>
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+              {service.sellerAvatar}
+            </div>
+            <div>
+              <p className="font-medium text-foreground">{service.sellerName}</p>
+              <p>{service.sellerUniversity}</p>
+            </div>
+          </div>
+          <ArrowUpRight className="h-4 w-4 text-primary transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+        </div>
       </div>
     </div>
 
-    <div className="p-4">
-      <div className="mb-2 flex items-center gap-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-          {service.sellerAvatar}
-        </div>
-        <div>
-          <p className="text-xs font-medium text-foreground">{service.sellerName}</p>
-          <p className="text-[10px] text-muted-foreground">{service.sellerUniversity}</p>
-        </div>
-      </div>
-
-      <h3 className="mb-2 line-clamp-2 text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+    <div className="p-5">
+      <h3 className="mb-2 line-clamp-2 text-base font-semibold text-foreground transition-colors group-hover:text-primary">
         {service.title}
       </h3>
+      <p className="line-clamp-2 text-sm text-muted-foreground">{service.description}</p>
 
-      <div className="mb-3 flex flex-wrap gap-1">
+      <div className="mt-4 flex flex-wrap gap-2">
         {service.tags.slice(0, 3).map((tag) => (
-          <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">
+          <Badge key={tag} variant="outline" className="rounded-full border-dashed px-2.5 py-1 text-[11px]">
             {tag}
           </Badge>
         ))}
       </div>
 
-      <div className="flex items-center justify-between border-t border-border pt-3">
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Star className="h-3.5 w-3.5 fill-warning text-warning" />
-          <span className="font-medium text-foreground">{service.rating}</span>
-          <span>({service.reviewCount})</span>
+      <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <Star className="h-3.5 w-3.5 fill-warning text-warning" />
+            <span className="font-medium text-foreground">{service.rating}</span>
+            <span>({service.reviewCount})</span>
+          </span>
+          <span className="flex items-center gap-1">
+            <Clock className="h-3.5 w-3.5" />
+            {service.deliveryDays}d
+          </span>
         </div>
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Clock className="h-3 w-3" />
-          {service.deliveryDays}d
+        <div className="text-right">
+          <span className="text-xs text-muted-foreground">From </span>
+          <span className="text-lg font-bold text-foreground">${service.price}</span>
         </div>
-      </div>
-
-      <div className="mt-2 text-right">
-        <span className="text-xs text-muted-foreground">From </span>
-        <span className="text-base font-bold text-foreground">${service.price}</span>
       </div>
     </div>
   </Link>
