@@ -6,9 +6,9 @@ import { ArrowRight, Search, ShieldCheck, Sparkles, Users } from "lucide-react";
 import heroImage from "@/assets/hero-illustration.jpg";
 
 const stats = [
-  { label: "Student sellers", value: "1.8k+" },
-  { label: "Projects completed", value: "12k+" },
-  { label: "Average rating", value: "4.9/5" },
+  { label: "Verified creators", value: "1.8k+" },
+  { label: "Projects delivered", value: "12k+" },
+  { label: "Client satisfaction", value: "4.9/5" },
 ];
 
 const HeroSection = () => {
@@ -27,15 +27,15 @@ const HeroSection = () => {
         <div className="animate-fade-up">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-4 py-2 text-sm font-medium text-primary">
             <Sparkles className="h-4 w-4" />
-            Built for ambitious students
+            Built for ambitious students and emerging global talent
           </div>
 
           <h1 className="mt-6 max-w-3xl text-4xl font-extrabold leading-tight tracking-tight text-foreground md:text-5xl lg:text-6xl">
-            Turn student talent into a marketplace that feels trustworthy, useful, and alive.
+            Launch talent, services, and reputation in a marketplace that feels modern, global, and trusted.
           </h1>
 
           <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
-            SkillSwap helps students sell tutoring, design, coding, editing, and digital services in one place with clear profiles, fast discovery, and a stronger campus-ready brand.
+            SkillSwap helps students and early-career creators sell tutoring, design, coding, editing, research, and digital services with stronger profiles, faster discovery, and a brand that feels internationally credible.
           </p>
 
           <form
@@ -94,8 +94,8 @@ const HeroSection = () => {
                   <Users className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Campus-first talent</p>
-                  <p className="text-xs text-muted-foreground">Profiles with real student identity</p>
+                  <p className="text-sm font-semibold text-foreground">Global-ready talent</p>
+                  <p className="text-xs text-muted-foreground">Profiles built for trust, proof, and discovery</p>
                 </div>
               </div>
             </div>
@@ -105,8 +105,8 @@ const HeroSection = () => {
                   <ShieldCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-foreground">Safer transactions</p>
-                  <p className="text-xs text-muted-foreground">Auth, profiles, and review-ready structure</p>
+                  <p className="text-sm font-semibold text-foreground">Professional buying experience</p>
+                  <p className="text-xs text-muted-foreground">Auth, messaging, and review-ready structure</p>
                 </div>
               </div>
             </div>

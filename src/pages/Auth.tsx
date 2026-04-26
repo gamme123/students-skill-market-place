@@ -10,9 +10,9 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 const authHighlights = [
-  "Create a student profile in minutes",
-  "Keep your account saved with Supabase auth",
-  "Start browsing or selling services right away",
+  "Create a talent profile in minutes",
+  "Use Gmail, university email, or any valid email address",
+  "Start browsing, selling, or hiring right away",
 ];
 
 const Auth = () => {
@@ -84,16 +84,16 @@ const Auth = () => {
             <div className="relative">
               <div className="inline-flex items-center gap-2 rounded-full bg-white/12 px-4 py-2 text-sm font-medium text-white/90">
                 <Sparkles className="h-4 w-4" />
-                Student accounts powered by Supabase
+                Global account access powered by Supabase
               </div>
 
               <h1 className="mt-8 max-w-lg text-4xl font-bold leading-tight">
-                {isSignUp ? "Create your SkillSwap account" : "Welcome back to your marketplace"}
+                {isSignUp ? "Create your SkillSwap account" : "Welcome back to your global workspace"}
               </h1>
               <p className="mt-4 max-w-xl text-sm leading-7 text-white/85">
                 {isSignUp
-                  ? "Join the marketplace to sell your skills, build trust with a student profile, and start growing your reputation."
-                  : "Sign in to manage your profile, explore services, and continue building the marketplace with real user accounts."}
+                  ? "Join with Gmail, a university address, or any valid email to showcase your skills, build trust, and start winning real opportunities."
+                  : "Sign in to manage your profile, explore opportunities, and keep building a marketplace that feels credible across borders."}
               </p>
 
               <div className="mt-10 space-y-4">
@@ -128,10 +128,10 @@ const Auth = () => {
                   {isSignUp ? "Join now" : "Sign in"}
                 </p>
                 <h2 className="mt-3 text-3xl font-bold text-foreground">
-                  {isSignUp ? "Set up your student account" : "Access your profile"}
+                  {isSignUp ? "Set up your account" : "Access your profile"}
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Use your email and password to {isSignUp ? "create" : "access"} your account.
+                  Use any valid email address and your password to {isSignUp ? "create" : "access"} your account.
                 </p>
               </div>
 
@@ -157,13 +157,16 @@ const Auth = () => {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="you@university.edu"
+                    placeholder="you@gmail.com or you@university.edu"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     required
                     maxLength={255}
                     className="h-11 rounded-xl"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Gmail, Outlook, university email, and other valid email providers are all allowed.
+                  </p>
                 </div>
 
                 <div className="space-y-2">

@@ -33,7 +33,7 @@ const Header = () => {
             </div>
             <div>
               <p className="text-lg font-extrabold tracking-tight text-foreground">SkillSwap</p>
-              <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Student marketplace</p>
+              <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Global talent marketplace</p>
             </div>
           </Link>
 

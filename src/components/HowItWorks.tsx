@@ -1,18 +1,18 @@
 import { UserPlus, Search, MessageCircle, Star } from "lucide-react";
 
 const steps = [
-  { icon: UserPlus, title: "Sign Up Free", desc: "Create your student profile in seconds" },
-  { icon: Search, title: "Find a Service", desc: "Browse categories or search by skill" },
-  { icon: MessageCircle, title: "Chat & Order", desc: "Discuss details and place your order" },
-  { icon: Star, title: "Review & Repeat", desc: "Rate the service and build your network" },
+  { icon: UserPlus, title: "Create Your Account", desc: "Join with Gmail, university email, or any valid address" },
+  { icon: Search, title: "Discover Talent", desc: "Search by category, deliverable, or specialist skill" },
+  { icon: MessageCircle, title: "Align and Hire", desc: "Message, confirm scope, and place the order with clarity" },
+  { icon: Star, title: "Build Reputation", desc: "Collect reviews, repeat work, and grow long-term trust" },
 ];
 
 const HowItWorks = () => (
   <section className="py-16">
     <div className="container mx-auto px-4">
       <div className="mb-12 text-center">
-        <h2 className="text-3xl font-bold text-foreground">How It Works</h2>
-        <p className="mt-2 text-muted-foreground">Four simple steps to get started</p>
+        <h2 className="text-3xl font-bold text-foreground">How SkillSwap Works</h2>
+        <p className="mt-2 text-muted-foreground">Four clear steps to move from profile to paid opportunity</p>
       </div>
       <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
         {steps.map((step, i) => (

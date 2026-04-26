@@ -8,10 +8,10 @@ const CTASection = () => (
       <div className="gradient-hero overflow-hidden rounded-[2rem] px-8 py-14 text-primary-foreground shadow-hero md:px-12">
         <div className="grid gap-8 md:grid-cols-[1.1fr_0.9fr] md:items-center">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-white/70">Start strong</p>
-            <h2 className="mt-4 text-3xl font-bold md:text-4xl">Ready to share your skills or hire another student?</h2>
+            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-white/70">Launch globally</p>
+            <h2 className="mt-4 text-3xl font-bold md:text-4xl">Ready to publish your skills or hire rising talent with confidence?</h2>
             <p className="mt-4 max-w-xl text-sm leading-7 text-white/85">
-              Your marketplace now has a cleaner experience, real authentication, and a Supabase-ready data layer. The next step is filling it with real student offers.
+              SkillSwap is growing into a modern marketplace for student and early-career talent, with stronger identity, cleaner discovery, and a more internationally credible product experience.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row md:justify-end">

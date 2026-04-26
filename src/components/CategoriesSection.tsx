@@ -7,9 +7,9 @@ const CategoriesSection = () => (
       <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary">Popular paths</p>
-          <h2 className="mt-3 text-3xl font-bold text-foreground md:text-4xl">Browse by category</h2>
+          <h2 className="mt-3 text-3xl font-bold text-foreground md:text-4xl">Browse globally relevant categories</h2>
           <p className="mt-3 max-w-2xl text-muted-foreground">
-            Explore the most requested academic, creative, and technical skills across the student marketplace.
+            Explore high-demand academic, creative, technical, and business skills designed to feel useful to local buyers, remote clients, and international teams.
           </p>
         </div>
       </div>
