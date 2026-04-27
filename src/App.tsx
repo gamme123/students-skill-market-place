@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index.tsx";
 import Explore from "./pages/Explore.tsx";
 import IdeaHub from "./pages/IdeaHub.tsx";
+import CollaborationPage from "./pages/CollaborationPage.tsx";
 import ServiceDetail from "./pages/ServiceDetail.tsx";
 import HowItWorksPage from "./pages/HowItWorksPage.tsx";
 import Auth from "./pages/Auth.tsx";
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/explore" element={<Explore />} />
             <Route path="/ideas" element={<IdeaHub />} />
+            <Route path="/collaboration" element={<CollaborationPage />} />
             <Route path="/service/:id" element={<ServiceDetail />} />
             <Route path="/how-it-works" element={<HowItWorksPage />} />
             <Route path="/auth" element={<Auth />} />

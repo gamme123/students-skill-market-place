@@ -8,6 +8,7 @@ import { toast } from "sonner";
 const navItems = [
   { label: "Explore", to: "/explore" },
   { label: "Idea Hub", to: "/ideas" },
+  { label: "Collaboration", to: "/collaboration" },
   { label: "Marketplace", to: "/explore?cat=web-dev" },
   { label: "How It Works", to: "/how-it-works" },
 ];

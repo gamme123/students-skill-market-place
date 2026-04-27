@@ -14,6 +14,7 @@ const IDEAS_STORAGE_KEY = "studenthub.ideaHub.ideas";
 const INTERACTIONS_STORAGE_KEY = "studenthub.ideaHub.interactions";
 const COMMENTS_STORAGE_KEY = "studenthub.ideaHub.comments";
 const FOLLOWING_STORAGE_KEY = "studenthub.ideaHub.following";
+const WORKSPACES_STORAGE_KEY = "studenthub.ideaHub.workspaces";
 
 type IdeaRow = Tables<"ideas">;
 type ProfileRow = Tables<"profiles">;
@@ -65,6 +66,45 @@ export interface IdeaHubActivitySnapshot {
   votesCast: number;
   collaborationRequests: number;
   authoredIdeas: number;
+}
+
+export interface WorkspaceMember {
+  userId: string;
+  displayName: string;
+  role: CollaborationRole;
+  title: string;
+  joinedAt: string;
+  isLead?: boolean;
+}
+
+export interface WorkspaceMessage {
+  id: string;
+  userId: string;
+  displayName: string;
+  role: CollaborationRole;
+  content: string;
+  createdAt: string;
+}
+
+export interface WorkspaceTask {
+  id: string;
+  title: string;
+  ownerRole: CollaborationRole;
+  status: "Todo" | "In Progress" | "Done";
+}
+
+export interface IdeaWorkspace {
+  id: string;
+  ideaId: string;
+  ideaTitle: string;
+  category: string;
+  stage: IdeaStage;
+  members: WorkspaceMember[];
+  openRoles: CollaborationRole[];
+  tasks: WorkspaceTask[];
+  messages: WorkspaceMessage[];
+  milestones: string[];
+  createdAt: string;
 }
 
 export interface IdeaComment {
@@ -156,6 +196,10 @@ const getStoredFollowing = () =>
   });
 
 const saveStoredFollowing = (following: IdeaFollowingState) => writeJson(FOLLOWING_STORAGE_KEY, following);
+
+const getStoredWorkspaces = () => readJson<IdeaWorkspace[]>(WORKSPACES_STORAGE_KEY, []);
+
+const saveStoredWorkspaces = (workspaces: IdeaWorkspace[]) => writeJson(WORKSPACES_STORAGE_KEY, workspaces);
 
 const withInteractionState = (idea: IdeaItem, interactions: IdeaInteractionMap): IdeaItem => {
   const state = interactions[idea.id];
@@ -683,4 +727,171 @@ export const createIdeaComment = async (
   commentMap[ideaId] = [nextComment, ...(commentMap[ideaId] ?? [])];
   saveStoredComments(commentMap);
   return nextComment;
+};
+
+export const fetchIdeaWorkspaces = async (): Promise<IdeaWorkspace[]> => getStoredWorkspaces();
+
+export const createIdeaWorkspace = async (
+  idea: IdeaItem,
+  owner: IdeaAuthor,
+  chosenRole: CollaborationRole,
+): Promise<IdeaWorkspace> => {
+  const existing = getStoredWorkspaces().find((workspace) => workspace.ideaId === idea.id);
+  if (existing) {
+    return existing;
+  }
+
+  const now = new Date().toISOString();
+  const nextWorkspace: IdeaWorkspace = {
+    id: `workspace-${idea.id}`,
+    ideaId: idea.id,
+    ideaTitle: idea.title,
+    category: idea.category,
+    stage: idea.stage,
+    members: [
+      {
+        userId: owner.userId,
+        displayName: owner.displayName,
+        role: chosenRole,
+        title: owner.title,
+        joinedAt: now,
+        isLead: true,
+      },
+    ],
+    openRoles: idea.rolesNeeded.filter((role) => role !== chosenRole),
+    tasks: [
+      {
+        id: `task-${Date.now()}-1`,
+        title: "Align the first MVP scope",
+        ownerRole: "Strategist",
+        status: "Todo",
+      },
+      {
+        id: `task-${Date.now()}-2`,
+        title: "Assign delivery roles and owners",
+        ownerRole: "Developer",
+        status: "In Progress",
+      },
+    ],
+    messages: [
+      {
+        id: `message-${Date.now()}`,
+        userId: owner.userId,
+        displayName: owner.displayName,
+        role: chosenRole,
+        content: "Workspace created. Let's define the MVP and assign the first sprint clearly.",
+        createdAt: now,
+      },
+    ],
+    milestones: idea.milestones ?? defaultMilestonesForStage(idea.stage),
+    createdAt: now,
+  };
+
+  saveStoredWorkspaces([nextWorkspace, ...getStoredWorkspaces()]);
+  return nextWorkspace;
+};
+
+export const joinIdeaWorkspace = async (
+  workspaceId: string,
+  member: IdeaAuthor,
+  role: CollaborationRole,
+): Promise<IdeaWorkspace | null> => {
+  const workspaces = getStoredWorkspaces();
+  const workspace = workspaces.find((item) => item.id === workspaceId);
+  if (!workspace) return null;
+
+  if (workspace.members.some((item) => item.userId === member.userId)) {
+    return workspace;
+  }
+
+  const now = new Date().toISOString();
+  const updated: IdeaWorkspace = {
+    ...workspace,
+    members: [
+      ...workspace.members,
+      {
+        userId: member.userId,
+        displayName: member.displayName,
+        role,
+        title: member.title,
+        joinedAt: now,
+      },
+    ],
+    openRoles: workspace.openRoles.filter((item) => item !== role),
+    messages: [
+      {
+        id: `message-${Date.now()}`,
+        userId: member.userId,
+        displayName: member.displayName,
+        role,
+        content: `Joined the workspace as ${role.toLowerCase()} and is ready to contribute.`,
+        createdAt: now,
+      },
+      ...workspace.messages,
+    ],
+  };
+
+  saveStoredWorkspaces(workspaces.map((item) => (item.id === workspaceId ? updated : item)));
+  return updated;
+};
+
+export const sendWorkspaceMessage = async (
+  workspaceId: string,
+  member: IdeaAuthor,
+  role: CollaborationRole,
+  content: string,
+): Promise<IdeaWorkspace | null> => {
+  const trimmed = content.trim();
+  if (!trimmed) return null;
+
+  const workspaces = getStoredWorkspaces();
+  const workspace = workspaces.find((item) => item.id === workspaceId);
+  if (!workspace) return null;
+
+  const updated: IdeaWorkspace = {
+    ...workspace,
+    messages: [
+      {
+        id: `message-${Date.now()}`,
+        userId: member.userId,
+        displayName: member.displayName,
+        role,
+        content: trimmed,
+        createdAt: new Date().toISOString(),
+      },
+      ...workspace.messages,
+    ],
+  };
+
+  saveStoredWorkspaces(workspaces.map((item) => (item.id === workspaceId ? updated : item)));
+  return updated;
+};
+
+export const addWorkspaceTask = async (
+  workspaceId: string,
+  title: string,
+  ownerRole: CollaborationRole,
+): Promise<IdeaWorkspace | null> => {
+  const trimmed = title.trim();
+  if (!trimmed) return null;
+
+  const workspaces = getStoredWorkspaces();
+  const workspace = workspaces.find((item) => item.id === workspaceId);
+  if (!workspace) return null;
+
+  const updated: IdeaWorkspace = {
+    ...workspace,
+    tasks: [
+      {
+        id: `task-${Date.now()}`,
+        title: trimmed,
+        ownerRole,
+        status: "Todo",
+      },
+      ...workspace.tasks,
+    ],
+  };
+
+  saveStoredWorkspaces(workspaces.map((item) => (item.id === workspaceId ? updated : item)));
+  return updated;
 };
