@@ -164,6 +164,30 @@ export interface CompetitionTrack {
   focus: string;
 }
 
+export interface SkillDnaProfile {
+  builderScore: number;
+  leadershipScore: number;
+  researchScore: number;
+  creativityScore: number;
+  workStyle: string;
+  behaviorTag: string;
+  topStrengths: string[];
+}
+
+export interface CoFounderMatch {
+  role: CollaborationRole;
+  matchScore: number;
+  summary: string;
+  reason: string;
+}
+
+export interface SimulationSnapshot {
+  marketInterest: number;
+  revenuePotential: string;
+  executionRisk: string;
+  verdict: string;
+}
+
 export interface IdeaComment {
   id: string;
   ideaId: string;
@@ -1219,3 +1243,97 @@ export const getGlobalCompetitionTracks = (): CompetitionTrack[] => [
     focus: "Education and collaboration",
   },
 ];
+
+export const getSkillDnaProfile = (input: {
+  servicesCount: number;
+  ideasCount: number;
+  votesEarned: number;
+  joinRequestsReceived: number;
+  collaborationRequestsSent?: number;
+}): SkillDnaProfile => {
+  const builderScore = Math.min(96, 34 + input.servicesCount * 10 + input.ideasCount * 8);
+  const leadershipScore = Math.min(94, 28 + input.ideasCount * 12 + input.joinRequestsReceived * 2);
+  const researchScore = Math.min(90, 24 + input.votesEarned / 8 + input.ideasCount * 6);
+  const creativityScore = Math.min(95, 30 + input.ideasCount * 10 + input.votesEarned / 10);
+
+  const behaviorTag =
+    leadershipScore >= 72 ? "Leader-builder" : builderScore >= 72 ? "Execution-focused" : "Emerging collaborator";
+  const workStyle =
+    researchScore >= 70 ? "Structured and insight-driven" : creativityScore >= 70 ? "Creative and fast-moving" : "Adaptive and learning quickly";
+
+  const strengths = [
+    builderScore >= 70 ? "Shipping ability" : "Hands-on growth",
+    leadershipScore >= 70 ? "Team orchestration" : "Collaboration momentum",
+    creativityScore >= 70 ? "Original idea generation" : "Practical opportunity spotting",
+  ];
+
+  return {
+    builderScore,
+    leadershipScore,
+    researchScore,
+    creativityScore,
+    workStyle,
+    behaviorTag,
+    topStrengths: strengths,
+  };
+};
+
+export const getCoFounderMatches = (
+  workspace: IdeaWorkspace | null | undefined,
+  preferredRole: CollaborationRole,
+): CoFounderMatch[] => {
+  if (!workspace) return [];
+
+  return workspace.openRoles.slice(0, 3).map((role, index) => {
+    const baseScore = role === preferredRole ? 91 : 78 - index * 4;
+    return {
+      role,
+      matchScore: Math.max(64, baseScore),
+      summary:
+        role === "Designer"
+          ? "Best next hire to sharpen product clarity and demo readiness."
+          : role === "Researcher"
+            ? "Best next hire to reduce risk and validate demand faster."
+            : role === "Strategist"
+              ? "Best next hire to improve positioning, roadmap, and launch discipline."
+              : role === "Writer"
+                ? "Best next hire to strengthen pitch, documentation, and go-to-market assets."
+                : "Best next hire to accelerate product execution and sprint velocity.",
+      reason: `${role} is still missing from the active team structure.`,
+    };
+  });
+};
+
+export const getSimulationSnapshot = (
+  idea: IdeaItem | null | undefined,
+  workspace: IdeaWorkspace | null | undefined,
+): SimulationSnapshot => {
+  if (!idea) {
+    return {
+      marketInterest: 0,
+      revenuePotential: "Unknown",
+      executionRisk: "Unknown",
+      verdict: "Pick an idea first to run the simulation.",
+    };
+  }
+
+  const workspaceHealth = getWorkspaceHealth(workspace);
+  const marketInterest = Math.min(96, Math.round(idea.votes * 0.18 + idea.joinRequests * 3 + workspaceHealth.score * 0.35));
+  const revenuePotential =
+    marketInterest >= 78 ? "High potential" : marketInterest >= 58 ? "Promising niche" : "Needs stronger demand proof";
+  const executionRisk =
+    workspaceHealth.score >= 72 ? "Moderate" : workspaceHealth.score >= 45 ? "Elevated" : "High";
+  const verdict =
+    marketInterest >= 75 && workspaceHealth.score >= 60
+      ? "This concept is strong enough to justify a beta launch path."
+      : marketInterest >= 55
+        ? "Validate demand more deeply before expanding the build scope."
+        : "Refine the problem statement and team shape before investing heavily.";
+
+  return {
+    marketInterest,
+    revenuePotential,
+    executionRisk,
+    verdict,
+  };
+};

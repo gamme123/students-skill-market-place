@@ -1,6 +1,6 @@
 import { Navigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { BadgeCheck, BookOpen, BriefcaseBusiness, CheckCircle2, GraduationCap, Lightbulb, PencilLine, ShieldCheck, Sparkles, Star, Users2 } from "lucide-react";
+import { BadgeCheck, BookOpen, BriefcaseBusiness, CheckCircle2, GraduationCap, Lightbulb, PencilLine, ShieldCheck, Sparkles, Star, Users2, BrainCircuit } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ServiceCard from "@/components/ServiceCard";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchCurrentUserProfile, fetchCurrentUserServices } from "@/lib/marketplace";
-import { fetchIdeaContributionSummary } from "@/lib/ideaHub";
+import { fetchIdeaContributionSummary, getSkillDnaProfile } from "@/lib/ideaHub";
 
 const Profile = () => {
   const { user, loading } = useAuth();
@@ -87,6 +87,12 @@ const Profile = () => {
           : "Supports broader portfolio breadth",
     tags: service.tags.slice(0, 3),
   }));
+  const skillDna = getSkillDnaProfile({
+    servicesCount: services.length,
+    ideasCount: ideaSummary.totalIdeas,
+    votesEarned: ideaSummary.totalVotes,
+    joinRequestsReceived: ideaSummary.totalJoinRequests,
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -197,6 +203,64 @@ const Profile = () => {
                 <p className="mt-2 text-sm font-semibold text-foreground">
                   {completionScore >= 80 ? "Strong" : completionScore >= 50 ? "Growing" : "Early stage"}
                 </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-10">
+          <div className="mb-6">
+            <p className="text-sm font-semibold uppercase tracking-[0.26em] text-primary">Skill DNA</p>
+            <h2 className="font-display mt-3 text-3xl font-bold text-foreground">Your future-facing builder profile</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-7 text-muted-foreground">
+              Skill DNA turns marketplace, idea, and collaboration activity into a more dynamic view of how you work, lead, and create.
+            </p>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="glass-panel rounded-[1.8rem] border border-white/70 p-6 shadow-card">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Behavior model</p>
+                  <h3 className="font-display mt-3 text-2xl font-bold text-foreground">{skillDna.behaviorTag}</h3>
+                  <p className="mt-2 text-sm leading-7 text-muted-foreground">{skillDna.workStyle}</p>
+                </div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <BrainCircuit className="h-6 w-6" />
+                </div>
+              </div>
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
+                  <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Builder</p>
+                  <p className="mt-2 text-2xl font-bold text-foreground">{skillDna.builderScore}/100</p>
+                </div>
+                <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
+                  <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Leadership</p>
+                  <p className="mt-2 text-2xl font-bold text-foreground">{skillDna.leadershipScore}/100</p>
+                </div>
+                <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
+                  <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Research</p>
+                  <p className="mt-2 text-2xl font-bold text-foreground">{skillDna.researchScore}/100</p>
+                </div>
+                <div className="rounded-2xl border border-border/70 bg-background/70 p-4">
+                  <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Creativity</p>
+                  <p className="mt-2 text-2xl font-bold text-foreground">{skillDna.creativityScore}/100</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="glass-panel rounded-[1.8rem] border border-white/70 p-6 shadow-card">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Top strengths</p>
+              <h3 className="font-display mt-3 text-2xl font-bold text-foreground">How StudentHub would position you</h3>
+              <div className="mt-6 space-y-3">
+                {skillDna.topStrengths.map((strength) => (
+                  <div key={strength} className="rounded-2xl border border-border/70 bg-background/70 px-4 py-3 text-sm text-foreground">
+                    {strength}
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 rounded-[1.4rem] border border-dashed border-border bg-background/70 p-4 text-sm leading-7 text-muted-foreground">
+                Phase 7 uses this DNA to support co-founder matching, recruiter visibility, and more adaptive recommendations across the platform.
               </div>
             </div>
           </div>

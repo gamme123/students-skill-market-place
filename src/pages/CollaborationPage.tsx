@@ -12,6 +12,7 @@ import { collaborationRoles, type CollaborationRole } from "@/data/ideas";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   addWorkspaceTask,
+  getCoFounderMatches,
   createIdeaWorkspace,
   fetchIdeaHubFeed,
   fetchIdeaWorkspaces,
@@ -21,6 +22,7 @@ import {
   getGlobalPlatformPreferences,
   getLocalizedPlatformCopy,
   getOpportunityMatches,
+  getSimulationSnapshot,
   getWorkspaceContributionSnapshot,
   getWorkspaceHealth,
   joinIdeaWorkspace,
@@ -80,10 +82,15 @@ const CollaborationPage = () => {
   const selectedWorkspace = workspaces.find((workspace) => workspace.id === selectedWorkspaceId) ?? null;
   const selectedWorkspaceHealth = useMemo(() => getWorkspaceHealth(selectedWorkspace), [selectedWorkspace]);
   const contributionBoard = useMemo(() => getWorkspaceContributionSnapshot(selectedWorkspace), [selectedWorkspace]);
+  const coFounderMatches = useMemo(() => getCoFounderMatches(selectedWorkspace, selectedRole), [selectedWorkspace, selectedRole]);
   const followedCategories = getIdeaFollowingState().categories;
   const globalPreferences = getGlobalPlatformPreferences();
   const localizedCopy = getLocalizedPlatformCopy(globalPreferences.language);
   const competitionTracks = getGlobalCompetitionTracks();
+  const simulationSnapshot = useMemo(() => {
+    const activeIdea = collaborationIdeas.find((idea) => idea.id === selectedWorkspace?.ideaId);
+    return getSimulationSnapshot(activeIdea, selectedWorkspace);
+  }, [collaborationIdeas, selectedWorkspace]);
   const opportunityMatches = useMemo(
     () => getOpportunityMatches(collaborationIdeas, workspaces, selectedRole, followedCategories).slice(0, 4),
     [collaborationIdeas, selectedRole, workspaces, followedCategories],
@@ -527,6 +534,55 @@ const CollaborationPage = () => {
                         ? `This team is strongest if it fills these remaining roles next: ${selectedWorkspaceHealth.missingRoles.join(", ")}.`
                         : "This workspace has all planned roles filled. The next leverage point is pushing more tasks toward done status."}
                     </p>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+                    <div className="rounded-[1.4rem] border border-border/70 bg-background/75 p-4">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <Users2 className="h-4 w-4 text-primary" />
+                        AI co-founder matching
+                      </div>
+                      <div className="mt-4 space-y-3">
+                        {coFounderMatches.length ? (
+                          coFounderMatches.map((match) => (
+                            <div key={match.role} className="rounded-2xl bg-background/80 p-4">
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="text-sm font-semibold text-foreground">{match.role}</p>
+                                <Badge variant="secondary" className="rounded-full">{match.matchScore}%</Badge>
+                              </div>
+                              <p className="mt-2 text-xs leading-6 text-muted-foreground">{match.summary}</p>
+                              <p className="mt-1 text-xs leading-6 text-muted-foreground">{match.reason}</p>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="rounded-2xl border border-dashed border-border bg-background/70 p-4 text-sm text-muted-foreground">
+                            This team has no missing core roles right now, so co-founder matching is temporarily satisfied.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[1.4rem] border border-border/70 bg-background/75 p-4">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <BarChart3 className="h-4 w-4 text-emerald-600" />
+                        Simulation lab
+                      </div>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-2xl bg-background/80 p-4">
+                          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Market interest</p>
+                          <p className="mt-2 text-2xl font-bold text-foreground">{simulationSnapshot.marketInterest}/100</p>
+                        </div>
+                        <div className="rounded-2xl bg-background/80 p-4">
+                          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Revenue signal</p>
+                          <p className="mt-2 text-sm font-semibold text-foreground">{simulationSnapshot.revenuePotential}</p>
+                        </div>
+                        <div className="rounded-2xl bg-background/80 p-4 sm:col-span-2">
+                          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Execution risk</p>
+                          <p className="mt-2 text-sm font-semibold text-foreground">{simulationSnapshot.executionRisk}</p>
+                          <p className="mt-3 text-xs leading-6 text-muted-foreground">{simulationSnapshot.verdict}</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
