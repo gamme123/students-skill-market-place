@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { categories, featuredServices, type Service } from "@/data/services";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 
 type ServiceRow = Tables<"services">;
 type ProfileRow = Tables<"profiles">;
@@ -28,6 +28,16 @@ export interface MarketplaceService extends Service {
   userId?: string;
   createdAt?: string;
   isActive?: boolean;
+}
+
+export interface MarketplaceServiceDraftInput {
+  title: string;
+  description: string;
+  category: string;
+  price: number;
+  deliveryDays: number;
+  tags: string[];
+  imageUrl?: string;
 }
 
 const formatInitials = (name: string) =>
@@ -330,6 +340,54 @@ export const fetchCurrentUserServices = async (userId: string | undefined) => {
   } catch (error) {
     console.error("Failed to fetch current user services", error);
     return [];
+  }
+};
+
+export const createMarketplaceService = async (
+  userId: string | undefined,
+  input: MarketplaceServiceDraftInput,
+) => {
+  if (!userId || !isSupabaseConfigured) return null;
+
+  try {
+    const payload: TablesInsert<"services"> = {
+      user_id: userId,
+      title: input.title.trim(),
+      description: input.description.trim(),
+      category: input.category,
+      price: input.price,
+      delivery_days: input.deliveryDays,
+      tags: input.tags,
+      image_url: input.imageUrl?.trim() || null,
+      is_active: true,
+    };
+
+    const { data, error } = await supabase.from("services").insert(payload).select("*").single();
+    if (error) throw error;
+
+    const profile = await fetchCurrentUserProfile(userId);
+
+    return {
+      id: data.id,
+      userId: data.user_id,
+      title: data.title,
+      description: data.description,
+      category: data.category,
+      price: Number(data.price),
+      rating: 5,
+      reviewCount: 0,
+      sellerName: profile?.displayName || "Student Seller",
+      sellerAvatar: formatInitials(profile?.displayName || "Student Seller"),
+      sellerUniversity: profile?.university || "Student community",
+      image: data.image_url ?? "",
+      deliveryDays: data.delivery_days,
+      tags: data.tags ?? [],
+      createdAt: data.created_at,
+      isActive: data.is_active,
+    } satisfies MarketplaceService;
+  } catch (error) {
+    console.error("Failed to create marketplace service", error);
+    return null;
   }
 };
 

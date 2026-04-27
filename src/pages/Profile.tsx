@@ -1,17 +1,33 @@
+import { useState } from "react";
 import { Navigate, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BadgeCheck, BookOpen, BriefcaseBusiness, CheckCircle2, GraduationCap, Lightbulb, PencilLine, ShieldCheck, Sparkles, Star, Users2, BrainCircuit } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ServiceCard from "@/components/ServiceCard";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchCurrentUserProfile, fetchCurrentUserServices } from "@/lib/marketplace";
+import { categories } from "@/data/services";
+import { createMarketplaceService, fetchCurrentUserProfile, fetchCurrentUserServices } from "@/lib/marketplace";
 import { fetchIdeaContributionSummary, getSkillDnaProfile } from "@/lib/ideaHub";
+import { toast } from "sonner";
 
 const Profile = () => {
   const { user, loading } = useAuth();
+  const queryClient = useQueryClient();
+  const [showServiceForm, setShowServiceForm] = useState(false);
+  const [serviceDraft, setServiceDraft] = useState({
+    title: "",
+    description: "",
+    category: categories[0]?.name ?? "Web Development",
+    price: "25",
+    deliveryDays: "3",
+    tags: "",
+    imageUrl: "",
+  });
 
   const profileQuery = useQuery({
     queryKey: ["profile", user?.id],
@@ -94,6 +110,65 @@ const Profile = () => {
     joinRequestsReceived: ideaSummary.totalJoinRequests,
   });
 
+  const handlePublishService = async () => {
+    if (!user?.id) {
+      toast.error("Sign in first to publish a service.");
+      return;
+    }
+
+    if (!serviceDraft.title.trim() || !serviceDraft.description.trim()) {
+      toast.error("Add a clear title and description for your service.");
+      return;
+    }
+
+    const price = Number(serviceDraft.price);
+    const deliveryDays = Number(serviceDraft.deliveryDays);
+
+    if (!Number.isFinite(price) || price <= 0) {
+      toast.error("Set a valid service price.");
+      return;
+    }
+
+    if (!Number.isFinite(deliveryDays) || deliveryDays <= 0) {
+      toast.error("Set a valid delivery timeline.");
+      return;
+    }
+
+    const created = await createMarketplaceService(user.id, {
+      title: serviceDraft.title,
+      description: serviceDraft.description,
+      category: serviceDraft.category,
+      price,
+      deliveryDays,
+      tags: serviceDraft.tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+      imageUrl: serviceDraft.imageUrl,
+    });
+
+    if (!created) {
+      toast.error("That service could not be published yet.");
+      return;
+    }
+
+    setServiceDraft({
+      title: "",
+      description: "",
+      category: categories[0]?.name ?? "Web Development",
+      price: "25",
+      deliveryDays: "3",
+      tags: "",
+      imageUrl: "",
+    });
+    setShowServiceForm(false);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["my-services", user.id] }),
+      queryClient.invalidateQueries({ queryKey: ["services", "explore"] }),
+    ]);
+    toast.success("Your service is now live in the marketplace.");
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -116,7 +191,7 @@ const Profile = () => {
               </div>
               <Button variant="secondary" className="w-full md:w-auto">
                 <PencilLine className="mr-2 h-4 w-4" />
-                Edit profile soon
+                Identity settings soon
               </Button>
             </div>
           </div>
@@ -386,7 +461,97 @@ const Profile = () => {
                 These are the live marketplace listings currently attached to your identity layer.
               </p>
             </div>
+            <Button className="rounded-xl" onClick={() => setShowServiceForm((current) => !current)}>
+              {showServiceForm ? "Close publisher" : "Publish a service"}
+            </Button>
           </div>
+
+          {showServiceForm ? (
+            <div className="mb-6 glass-panel rounded-[1.8rem] border border-white/70 p-6 shadow-card">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Seller publisher</p>
+                  <h3 className="font-display mt-3 text-2xl font-bold text-foreground">Launch a service into the marketplace</h3>
+                  <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
+                    Add a service buyers can discover in Explore. This is the fastest way to turn your profile into a real earning surface.
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-primary/10 px-4 py-3 text-right text-sm">
+                  <p className="font-semibold text-primary">{services.length}</p>
+                  <p className="text-muted-foreground">Live services</p>
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-4">
+                <Input
+                  placeholder="Service title"
+                  className="h-12 rounded-2xl"
+                  value={serviceDraft.title}
+                  onChange={(event) => setServiceDraft((current) => ({ ...current, title: event.target.value }))}
+                />
+                <Textarea
+                  placeholder="Describe what you deliver, who it helps, and why your service is valuable."
+                  className="min-h-28 rounded-2xl"
+                  value={serviceDraft.description}
+                  onChange={(event) => setServiceDraft((current) => ({ ...current, description: event.target.value }))}
+                />
+
+                <div className="grid gap-4 md:grid-cols-3">
+                  <select
+                    className="h-12 rounded-2xl border border-input bg-background px-4 text-sm"
+                    value={serviceDraft.category}
+                    onChange={(event) => setServiceDraft((current) => ({ ...current, category: event.target.value }))}
+                  >
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.name}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="Price"
+                    className="h-12 rounded-2xl"
+                    value={serviceDraft.price}
+                    onChange={(event) => setServiceDraft((current) => ({ ...current, price: event.target.value }))}
+                  />
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="Delivery days"
+                    className="h-12 rounded-2xl"
+                    value={serviceDraft.deliveryDays}
+                    onChange={(event) => setServiceDraft((current) => ({ ...current, deliveryDays: event.target.value }))}
+                  />
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Input
+                    placeholder="Tags, separated by commas"
+                    className="h-12 rounded-2xl"
+                    value={serviceDraft.tags}
+                    onChange={(event) => setServiceDraft((current) => ({ ...current, tags: event.target.value }))}
+                  />
+                  <Input
+                    placeholder="Optional image URL"
+                    className="h-12 rounded-2xl"
+                    value={serviceDraft.imageUrl}
+                    onChange={(event) => setServiceDraft((current) => ({ ...current, imageUrl: event.target.value }))}
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <Button className="rounded-xl" onClick={() => void handlePublishService()}>
+                    Publish service
+                  </Button>
+                  <Button variant="outline" className="rounded-xl" onClick={() => setShowServiceForm(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           {servicesQuery.isLoading ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
