@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="StudentHub logo">
+  <defs>
+    <linearGradient id="studenthubGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1d4ed8" />
+      <stop offset="100%" stop-color="#7c3aed" />
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#studenthubGradient)" />
+  <path
+    d="M74 72h48c26 0 41 12 41 31 0 12-6 21-17 27 15 5 24 16 24 31 0 25-19 39-52 39H74V72Zm40 49c12 0 18-4 18-12 0-7-6-11-18-11h-12v23h12Zm5 53c14 0 22-5 22-15s-8-15-22-15h-17v30h17Z"
+    fill="#fff"
+  />
+  <path d="M169 72h29v128h-29z" fill="#fff" opacity="0.9" />
+</svg>
