@@ -599,9 +599,11 @@ const IdeaHub = () => {
                         <Star className={`mr-2 h-4 w-4 ${followingState.ideaIds.includes(idea.id) ? "fill-current" : ""}`} />
                         {followingState.ideaIds.includes(idea.id) ? "Following" : "Follow idea"}
                       </Button>
-                      <Button className="rounded-xl">
-                        Convert to project
-                        <ArrowRight className="ml-2 h-4 w-4" />
+                      <Button className="rounded-xl" asChild>
+                        <Link to="/collaboration">
+                          Convert to project
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
                       </Button>
                     </div>
                   </div>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, BarChart3, CheckCircle2, MessagesSquare, Rocket, Sparkles, Target, Users2 } from "lucide-react";
+import { ArrowRight, BarChart3, CheckCircle2, MessagesSquare, Rocket, Sparkles, Target, Trophy, Users2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
@@ -18,9 +18,12 @@ import {
   getIdeaFollowingState,
   getIdeaIntelligenceScore,
   getOpportunityMatches,
+  getWorkspaceContributionSnapshot,
   getWorkspaceHealth,
   joinIdeaWorkspace,
   sendWorkspaceMessage,
+  updateWorkspaceMilestone,
+  convertWorkspaceToProject,
   type IdeaWorkspace,
 } from "@/lib/ideaHub";
 import { toast } from "sonner";
@@ -30,6 +33,7 @@ const CollaborationPage = () => {
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
   const [draftMessage, setDraftMessage] = useState("");
   const [draftTask, setDraftTask] = useState("");
+  const [projectTitle, setProjectTitle] = useState("");
   const [selectedRole, setSelectedRole] = useState<CollaborationRole>("Developer");
   const [workspaces, setWorkspaces] = useState<IdeaWorkspace[]>([]);
 
@@ -53,6 +57,10 @@ const CollaborationPage = () => {
     }
   }, [selectedWorkspaceId, workspacesQuery.data]);
 
+  useEffect(() => {
+    setProjectTitle(selectedWorkspace?.launch.projectTitle ?? "");
+  }, [selectedWorkspace?.id, selectedWorkspace?.launch.projectTitle]);
+
   const workspaceMap = useMemo(
     () => new Map(workspaces.map((workspace) => [workspace.ideaId, workspace])),
     [workspaces],
@@ -68,6 +76,7 @@ const CollaborationPage = () => {
 
   const selectedWorkspace = workspaces.find((workspace) => workspace.id === selectedWorkspaceId) ?? null;
   const selectedWorkspaceHealth = useMemo(() => getWorkspaceHealth(selectedWorkspace), [selectedWorkspace]);
+  const contributionBoard = useMemo(() => getWorkspaceContributionSnapshot(selectedWorkspace), [selectedWorkspace]);
   const followedCategories = getIdeaFollowingState().categories;
   const opportunityMatches = useMemo(
     () => getOpportunityMatches(collaborationIdeas, workspaces, selectedRole, followedCategories).slice(0, 4),
@@ -154,6 +163,43 @@ const CollaborationPage = () => {
     setDraftTask("");
     await refreshWorkspaces();
     toast.success("Task added to the workspace board.");
+  };
+
+  const handleUpdateMilestone = async (
+    milestoneId: string,
+    status: "Todo" | "In Progress" | "Done",
+  ) => {
+    if (!selectedWorkspace) {
+      toast.error("Choose a workspace first.");
+      return;
+    }
+
+    const updated = await updateWorkspaceMilestone(selectedWorkspace.id, milestoneId, status);
+    if (!updated) {
+      toast.error("That milestone could not be updated.");
+      return;
+    }
+
+    await refreshWorkspaces();
+    toast.success("Milestone status updated.");
+  };
+
+  const handleConvertToProject = async () => {
+    if (!selectedWorkspace) {
+      toast.error("Choose a workspace first.");
+      return;
+    }
+
+    const nextTitle = projectTitle.trim() || `${selectedWorkspace.ideaTitle} Launch`;
+    const updated = await convertWorkspaceToProject(selectedWorkspace.id, nextTitle);
+    if (!updated) {
+      toast.error("That project conversion could not be completed.");
+      return;
+    }
+
+    setProjectTitle(updated.launch.projectTitle ?? "");
+    await refreshWorkspaces();
+    toast.success("Workspace converted into a launch-ready project.");
   };
 
   return (
@@ -249,6 +295,22 @@ const CollaborationPage = () => {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+            <div className="glass-panel rounded-[1.8rem] border border-white/70 p-6 shadow-card">
+              <div className="flex items-center gap-3">
+                <Trophy className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Incubator mode</p>
+                  <h2 className="font-display text-2xl font-bold text-foreground">Idea to startup journey</h2>
+                </div>
+              </div>
+              <div className="mt-5 space-y-3 text-sm leading-7 text-muted-foreground">
+                <p>1. Form a core team around the right execution roles.</p>
+                <p>2. Assign milestones and move them from planning into delivery.</p>
+                <p>3. Capture contribution shares so the build story is transparent.</p>
+                <p>4. Convert validated workspaces into launch-ready marketplace projects.</p>
               </div>
             </div>
 
@@ -350,6 +412,25 @@ const CollaborationPage = () => {
 
                   <div className="grid gap-4 md:grid-cols-3">
                     <div className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Launch status</p>
+                      <p className="mt-2 text-2xl font-bold text-foreground">{selectedWorkspace.launch.launchStatus}</p>
+                    </div>
+                    <div className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Converted project</p>
+                      <p className="mt-2 text-sm font-semibold text-foreground">
+                        {selectedWorkspace.launch.converted ? selectedWorkspace.launch.projectTitle : "Not converted yet"}
+                      </p>
+                    </div>
+                    <div className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Contribution leaders</p>
+                      <p className="mt-2 text-sm font-semibold text-foreground">
+                        {contributionBoard.length ? contributionBoard[0].displayName : "No activity yet"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
                       <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                         <Users2 className="h-4 w-4 text-primary" />
                         Team strength
@@ -382,6 +463,62 @@ const CollaborationPage = () => {
                         ? `This team is strongest if it fills these remaining roles next: ${selectedWorkspaceHealth.missingRoles.join(", ")}.`
                         : "This workspace has all planned roles filled. The next leverage point is pushing more tasks toward done status."}
                     </p>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+                    <div className="rounded-[1.4rem] border border-border/70 bg-background/75 p-4">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <Rocket className="h-4 w-4 text-primary" />
+                        Milestone ownership
+                      </div>
+                      <div className="mt-4 space-y-3">
+                        {selectedWorkspace.milestoneBoard.map((milestone) => (
+                          <div key={milestone.id} className="rounded-2xl bg-background/80 p-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-semibold text-foreground">{milestone.title}</p>
+                                <p className="mt-1 text-xs text-muted-foreground">Owner role: {milestone.ownerRole}</p>
+                              </div>
+                              <select
+                                className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                                value={milestone.status}
+                                onChange={(event) =>
+                                  handleUpdateMilestone(
+                                    milestone.id,
+                                    event.target.value as "Todo" | "In Progress" | "Done",
+                                  )
+                                }
+                              >
+                                <option value="Todo">Todo</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Done">Done</option>
+                              </select>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[1.4rem] border border-border/70 bg-background/75 p-4">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <BarChart3 className="h-4 w-4 text-emerald-600" />
+                        Contribution tracking
+                      </div>
+                      <div className="mt-4 space-y-3">
+                        {contributionBoard.map((entry) => (
+                          <div key={entry.userId} className="rounded-2xl bg-background/80 p-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-semibold text-foreground">{entry.displayName}</p>
+                                <p className="mt-1 text-xs text-muted-foreground">{entry.role}</p>
+                              </div>
+                              <Badge variant="secondary" className="rounded-full">{entry.share}% share</Badge>
+                            </div>
+                            <p className="mt-3 text-xs leading-6 text-muted-foreground">{entry.summary}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
@@ -485,6 +622,29 @@ const CollaborationPage = () => {
                         Phase 5 can now build on this with milestone state, assignee ownership, and idea-to-project conversion logic.
                       </div>
                     </div>
+                  </div>
+
+                  <div className="rounded-[1.4rem] border border-border/70 bg-background/75 p-4">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <ArrowRight className="h-4 w-4 text-primary" />
+                      Idea to project conversion
+                    </div>
+                    <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto]">
+                      <Input
+                        placeholder="Name the launch-ready project"
+                        className="h-12 rounded-2xl"
+                        value={projectTitle}
+                        onChange={(event) => setProjectTitle(event.target.value)}
+                      />
+                      <Button className="rounded-xl" onClick={handleConvertToProject}>
+                        {selectedWorkspace.launch.converted ? "Update launch" : "Convert to project"}
+                      </Button>
+                    </div>
+                    <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                      {selectedWorkspace.launch.converted
+                        ? `This workspace has been converted into ${selectedWorkspace.launch.projectTitle} and is now tracked as a ${selectedWorkspace.launch.launchStatus?.toLowerCase()} release.`
+                        : "When the team is ready, convert this workspace into a launch-ready marketplace project and keep the incubator story intact."}
+                    </p>
                   </div>
                 </div>
               ) : (

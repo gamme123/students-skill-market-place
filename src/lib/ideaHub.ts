@@ -93,6 +93,20 @@ export interface WorkspaceTask {
   status: "Todo" | "In Progress" | "Done";
 }
 
+export interface WorkspaceMilestone {
+  id: string;
+  title: string;
+  ownerRole: CollaborationRole;
+  status: "Todo" | "In Progress" | "Done";
+}
+
+export interface ProjectLaunchRecord {
+  converted: boolean;
+  projectTitle?: string;
+  convertedAt?: string;
+  launchStatus?: "Planning" | "Private Beta" | "Public Launch";
+}
+
 export interface IdeaWorkspace {
   id: string;
   ideaId: string;
@@ -104,6 +118,8 @@ export interface IdeaWorkspace {
   tasks: WorkspaceTask[];
   messages: WorkspaceMessage[];
   milestones: string[];
+  milestoneBoard: WorkspaceMilestone[];
+  launch: ProjectLaunchRecord;
   createdAt: string;
 }
 
@@ -120,6 +136,15 @@ export interface OpportunityMatch {
   score: number;
   label: string;
   reasons: string[];
+}
+
+export interface WorkspaceContributionSnapshot {
+  userId: string;
+  displayName: string;
+  role: CollaborationRole;
+  points: number;
+  share: number;
+  summary: string;
 }
 
 export interface IdeaComment {
@@ -215,6 +240,13 @@ const saveStoredFollowing = (following: IdeaFollowingState) => writeJson(FOLLOWI
 const getStoredWorkspaces = () => readJson<IdeaWorkspace[]>(WORKSPACES_STORAGE_KEY, []);
 
 const saveStoredWorkspaces = (workspaces: IdeaWorkspace[]) => writeJson(WORKSPACES_STORAGE_KEY, workspaces);
+
+const defaultMilestoneRoles = (roles: CollaborationRole[]) => {
+  const primary = roles[0] ?? "Developer";
+  const secondary = roles[1] ?? primary;
+  const third = roles[2] ?? secondary;
+  return [primary, secondary, third];
+};
 
 const withInteractionState = (idea: IdeaItem, interactions: IdeaInteractionMap): IdeaItem => {
   const state = interactions[idea.id];
@@ -758,11 +790,13 @@ export const getWorkspaceHealth = (workspace: IdeaWorkspace | null | undefined):
   }
 
   const teamStrength = Math.min(100, workspace.members.length * 22 + (workspace.openRoles.length === 0 ? 16 : 0));
+  const milestoneBoard = workspace.milestoneBoard ?? [];
   const executionStrength = Math.min(
     100,
     workspace.tasks.filter((task) => task.status === "Done").length * 24 +
       workspace.tasks.filter((task) => task.status === "In Progress").length * 14 +
-      workspace.milestones.length * 6,
+      milestoneBoard.filter((milestone) => milestone.status === "Done").length * 18 +
+      milestoneBoard.filter((milestone) => milestone.status === "In Progress").length * 10,
   );
   const communicationStrength = Math.min(100, workspace.messages.length * 12);
 
@@ -835,6 +869,8 @@ export const createIdeaWorkspace = async (
   }
 
   const now = new Date().toISOString();
+  const milestoneTitles = idea.milestones ?? defaultMilestonesForStage(idea.stage);
+  const [firstRole, secondRole, thirdRole] = defaultMilestoneRoles(idea.rolesNeeded);
   const nextWorkspace: IdeaWorkspace = {
     id: `workspace-${idea.id}`,
     ideaId: idea.id,
@@ -876,7 +912,31 @@ export const createIdeaWorkspace = async (
         createdAt: now,
       },
     ],
-    milestones: idea.milestones ?? defaultMilestonesForStage(idea.stage),
+    milestones: milestoneTitles,
+    milestoneBoard: [
+      {
+        id: `milestone-${Date.now()}-1`,
+        title: milestoneTitles[0] ?? "Problem framing",
+        ownerRole: firstRole,
+        status: "In Progress",
+      },
+      {
+        id: `milestone-${Date.now()}-2`,
+        title: milestoneTitles[1] ?? "Prototype MVP",
+        ownerRole: secondRole,
+        status: "Todo",
+      },
+      {
+        id: `milestone-${Date.now()}-3`,
+        title: milestoneTitles[2] ?? "Launch prep",
+        ownerRole: thirdRole,
+        status: "Todo",
+      },
+    ],
+    launch: {
+      converted: false,
+      launchStatus: "Planning",
+    },
     createdAt: now,
   };
 
@@ -987,4 +1047,87 @@ export const addWorkspaceTask = async (
 
   saveStoredWorkspaces(workspaces.map((item) => (item.id === workspaceId ? updated : item)));
   return updated;
+};
+
+export const updateWorkspaceMilestone = async (
+  workspaceId: string,
+  milestoneId: string,
+  status: "Todo" | "In Progress" | "Done",
+): Promise<IdeaWorkspace | null> => {
+  const workspaces = getStoredWorkspaces();
+  const workspace = workspaces.find((item) => item.id === workspaceId);
+  if (!workspace) return null;
+
+  const updated: IdeaWorkspace = {
+    ...workspace,
+    milestoneBoard: (workspace.milestoneBoard ?? []).map((milestone) =>
+      milestone.id === milestoneId ? { ...milestone, status } : milestone,
+    ),
+  };
+
+  saveStoredWorkspaces(workspaces.map((item) => (item.id === workspaceId ? updated : item)));
+  return updated;
+};
+
+export const convertWorkspaceToProject = async (
+  workspaceId: string,
+  projectTitle: string,
+): Promise<IdeaWorkspace | null> => {
+  const trimmed = projectTitle.trim();
+  if (!trimmed) return null;
+
+  const workspaces = getStoredWorkspaces();
+  const workspace = workspaces.find((item) => item.id === workspaceId);
+  if (!workspace) return null;
+
+  const updated: IdeaWorkspace = {
+    ...workspace,
+    stage: "Ready for Marketplace",
+    launch: {
+      converted: true,
+      projectTitle: trimmed,
+      convertedAt: new Date().toISOString(),
+      launchStatus: "Private Beta",
+    },
+  };
+
+  saveStoredWorkspaces(workspaces.map((item) => (item.id === workspaceId ? updated : item)));
+  return updated;
+};
+
+export const getWorkspaceContributionSnapshot = (workspace: IdeaWorkspace | null | undefined): WorkspaceContributionSnapshot[] => {
+  if (!workspace) return [];
+
+  const totalMessages = workspace.messages.length;
+  const totalTasks = workspace.tasks.length;
+  const totalMilestones = (workspace.milestoneBoard ?? []).length;
+
+  const entries = workspace.members.map((member) => {
+    const messagePoints = workspace.messages.filter((message) => message.userId === member.userId).length * 4;
+    const taskPoints = workspace.tasks.filter((task) => task.ownerRole === member.role).length * 6;
+    const milestonePoints = (workspace.milestoneBoard ?? []).filter((milestone) => milestone.ownerRole === member.role).length * 8;
+    const leadBonus = member.isLead ? 6 : 0;
+    const points = messagePoints + taskPoints + milestonePoints + leadBonus + 5;
+
+    return {
+      userId: member.userId,
+      displayName: member.displayName,
+      role: member.role,
+      points,
+      summary: `${messagePoints / 4} updates, ${taskPoints / 6} tasks, ${milestonePoints / 8} milestones`,
+    };
+  });
+
+  const totalPoints = entries.reduce((sum, entry) => sum + entry.points, 0) || 1;
+
+  return entries
+    .map((entry) => ({
+      ...entry,
+      share: Math.round((entry.points / totalPoints) * 100),
+      summary:
+        totalMessages || totalTasks || totalMilestones
+          ? entry.summary
+          : "Initial team member with baseline contribution share",
+    }))
+    .sort((a, b) => b.points - a.points);
 };
