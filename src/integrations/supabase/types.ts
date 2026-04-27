@@ -14,6 +14,127 @@ export type Database = {
   }
   public: {
     Tables: {
+      idea_join_requests: {
+        Row: {
+          created_at: string
+          id: string
+          idea_id: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          idea_id: string
+          role: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          idea_id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idea_join_requests_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "ideas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      idea_votes: {
+        Row: {
+          created_at: string
+          id: string
+          idea_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          idea_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          idea_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idea_votes_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: false
+            referencedRelation: "ideas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ideas: {
+        Row: {
+          ai_feedback: string
+          author_title: string
+          category: string
+          conversion_path: string
+          created_at: string
+          description: string
+          difficulty: string
+          id: string
+          is_active: boolean
+          roles_needed: string[] | null
+          stage: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+          user_id: string
+          visibility: string
+        }
+        Insert: {
+          ai_feedback: string
+          author_title: string
+          category: string
+          conversion_path: string
+          created_at?: string
+          description: string
+          difficulty: string
+          id?: string
+          is_active?: boolean
+          roles_needed?: string[] | null
+          stage: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          user_id: string
+          visibility: string
+        }
+        Update: {
+          ai_feedback?: string
+          author_title?: string
+          category?: string
+          conversion_path?: string
+          created_at?: string
+          description?: string
+          difficulty?: string
+          id?: string
+          is_active?: boolean
+          roles_needed?: string[] | null
+          stage?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          visibility?: string
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string

@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { BadgeCheck, BookOpen, BriefcaseBusiness, CheckCircle2, GraduationCap, Lightbulb, PencilLine, ShieldCheck, Sparkles, Star, Users2 } from "lucide-react";
@@ -9,11 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchCurrentUserProfile, fetchCurrentUserServices } from "@/lib/marketplace";
-import { getIdeaContributionSummary } from "@/lib/ideaHub";
+import { fetchIdeaContributionSummary } from "@/lib/ideaHub";
 
 const Profile = () => {
   const { user, loading } = useAuth();
-  const [ideaSummary, setIdeaSummary] = useState(() => getIdeaContributionSummary(user?.id));
 
   const profileQuery = useQuery({
     queryKey: ["profile", user?.id],
@@ -27,9 +25,11 @@ const Profile = () => {
     enabled: Boolean(user?.id),
   });
 
-  useEffect(() => {
-    setIdeaSummary(getIdeaContributionSummary(user?.id));
-  }, [user?.id]);
+  const ideaSummaryQuery = useQuery({
+    queryKey: ["idea-summary", user?.id],
+    queryFn: () => fetchIdeaContributionSummary(user?.id),
+    enabled: Boolean(user?.id),
+  });
 
   if (!loading && !user) {
     return <Navigate to="/auth" replace />;
@@ -37,6 +37,12 @@ const Profile = () => {
 
   const profile = profileQuery.data;
   const services = servicesQuery.data ?? [];
+  const ideaSummary = ideaSummaryQuery.data ?? {
+    totalIdeas: 0,
+    totalVotes: 0,
+    totalJoinRequests: 0,
+    authoredIdeas: [],
+  };
   const displayName = profile?.displayName || user?.user_metadata?.display_name || user?.email?.split("@")[0] || "Student";
   const initials = displayName
     .split(" ")

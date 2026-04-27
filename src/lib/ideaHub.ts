@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 import {
   ideas as seedIdeas,
   type CollaborationRole,
@@ -6,9 +8,15 @@ import {
   type IdeaStage,
   type IdeaVisibility,
 } from "@/data/ideas";
+import { isSupabaseConfigured } from "@/lib/marketplace";
 
 const IDEAS_STORAGE_KEY = "studenthub.ideaHub.ideas";
 const INTERACTIONS_STORAGE_KEY = "studenthub.ideaHub.interactions";
+
+type IdeaRow = Tables<"ideas">;
+type ProfileRow = Tables<"profiles">;
+type IdeaVoteRow = Tables<"idea_votes">;
+type IdeaJoinRequestRow = Tables<"idea_join_requests">;
 
 interface IdeaInteractionState {
   votes: number;
@@ -34,6 +42,13 @@ export interface IdeaDraftInput {
   stage: IdeaStage;
   difficulty: IdeaDifficulty;
   rolesNeeded: CollaborationRole[];
+}
+
+export interface IdeaContributionSummary {
+  totalIdeas: number;
+  totalVotes: number;
+  totalJoinRequests: number;
+  authoredIdeas: IdeaItem[];
 }
 
 const canUseStorage = () => typeof window !== "undefined" && typeof window.localStorage !== "undefined";
@@ -74,7 +89,9 @@ const buildAiFeedback = (input: IdeaDraftInput) => {
 const buildConversionPath = (input: IdeaDraftInput) =>
   `Validate the concept, form a ${input.rolesNeeded.length ? input.rolesNeeded[0].toLowerCase() : "core"}-led team, then convert it into a marketplace project or startup MVP.`;
 
-export const getStoredIdeas = () => readJson<IdeaItem[]>(IDEAS_STORAGE_KEY, []);
+const formatDisplayTitle = (raw: string | null | undefined) => raw?.trim() || "Student builder";
+
+const getStoredIdeas = () => readJson<IdeaItem[]>(IDEAS_STORAGE_KEY, []);
 
 const saveStoredIdeas = (ideas: IdeaItem[]) => writeJson(IDEAS_STORAGE_KEY, ideas);
 
@@ -86,32 +103,18 @@ const withInteractionState = (idea: IdeaItem, interactions: IdeaInteractionMap):
   const state = interactions[idea.id];
   if (!state) return idea;
 
-  const votes = state.votes;
-  const joinRequests = state.joinRequests;
-
   return {
     ...idea,
-    votes,
-    joinRequests,
-    trendScore: buildTrendScore(votes, joinRequests),
-    interestLevel: buildInterestLevel(votes, joinRequests),
+    votes: state.votes,
+    joinRequests: state.joinRequests,
+    trendScore: buildTrendScore(state.votes, state.joinRequests),
+    interestLevel: buildInterestLevel(state.votes, state.joinRequests),
   };
 };
 
-export const getIdeaHubFeed = () => {
-  const interactions = getStoredInteractions();
-  return [...seedIdeas, ...getStoredIdeas()]
-    .map((idea) => withInteractionState(idea, interactions))
-    .sort((a, b) => {
-      const scoreDelta = b.trendScore - a.trendScore;
-      if (scoreDelta !== 0) return scoreDelta;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-};
-
-export const createIdeaDraft = (input: IdeaDraftInput, author: IdeaAuthor) => {
+const buildLocalIdea = (input: IdeaDraftInput, author: IdeaAuthor) => {
   const now = new Date().toISOString();
-  const idea: IdeaItem = {
+  return {
     id: `idea-user-${Date.now()}`,
     title: input.title.trim(),
     description: input.description.trim(),
@@ -133,86 +136,308 @@ export const createIdeaDraft = (input: IdeaDraftInput, author: IdeaAuthor) => {
     conversionPath: buildConversionPath(input),
     createdAt: now,
     isUserGenerated: true,
-  };
-
-  const nextIdeas = [idea, ...getStoredIdeas()];
-  saveStoredIdeas(nextIdeas);
-
-  const interactions = getStoredInteractions();
-  interactions[idea.id] = {
-    votes: idea.votes,
-    joinRequests: 0,
-    voted: false,
-    joinedRole: null,
-  };
-  saveStoredInteractions(interactions);
-
-  return idea;
+  } satisfies IdeaItem;
 };
 
-export const voteForIdea = (ideaId: string) => {
-  const feed = getIdeaHubFeed();
-  const idea = feed.find((item) => item.id === ideaId);
-  if (!idea) return { ok: false, reason: "Idea not found" as const };
-
+const ensureLocalInteraction = (idea: IdeaItem) => {
   const interactions = getStoredInteractions();
-  const current = interactions[ideaId] ?? {
+  interactions[idea.id] = interactions[idea.id] ?? {
     votes: idea.votes,
     joinRequests: idea.joinRequests,
     voted: false,
     joinedRole: null,
   };
+  saveStoredInteractions(interactions);
+};
 
-  if (current.voted) {
-    return { ok: false, reason: "already-voted" as const };
+const mapLocalFeed = () => {
+  const interactions = getStoredInteractions();
+  return [...seedIdeas, ...getStoredIdeas()]
+    .map((idea) => withInteractionState(idea, interactions))
+    .sort((a, b) => {
+      const scoreDelta = b.trendScore - a.trendScore;
+      if (scoreDelta !== 0) return scoreDelta;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+};
+
+const isSchemaError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes("Could not find the table") || message.includes("idea_votes") || message.includes("idea_join_requests") || message.includes("ideas");
+};
+
+const mapSupabaseIdea = (
+  idea: IdeaRow,
+  profile: ProfileRow | undefined,
+  votes: IdeaVoteRow[] | undefined,
+  joins: IdeaJoinRequestRow[] | undefined,
+): IdeaItem => {
+  const voteCount = votes?.length ?? 0;
+  const joinCount = joins?.length ?? 0;
+
+  return {
+    id: idea.id,
+    title: idea.title,
+    description: idea.description,
+    category: idea.category,
+    tags: idea.tags ?? [],
+    visibility: idea.visibility as IdeaVisibility,
+    stage: idea.stage as IdeaStage,
+    difficulty: idea.difficulty as IdeaDifficulty,
+    trendScore: buildTrendScore(voteCount, joinCount),
+    votes: voteCount,
+    comments: 0,
+    joinRequests: joinCount,
+    interestLevel: buildInterestLevel(voteCount, joinCount),
+    aiFeedback: idea.ai_feedback,
+    author: formatDisplayTitle(profile?.display_name),
+    authorTitle: idea.author_title,
+    authorUserId: idea.user_id,
+    rolesNeeded: (idea.roles_needed ?? []) as CollaborationRole[],
+    conversionPath: idea.conversion_path,
+    createdAt: idea.created_at,
+    isUserGenerated: true,
+  };
+};
+
+const groupByIdeaId = <T extends { idea_id: string }>(rows: T[]) =>
+  rows.reduce(
+    (map, row) => {
+      const list = map.get(row.idea_id) ?? [];
+      list.push(row);
+      map.set(row.idea_id, list);
+      return map;
+    },
+    new Map<string, T[]>(),
+  );
+
+export const fetchIdeaHubFeed = async (): Promise<IdeaItem[]> => {
+  if (!isSupabaseConfigured) {
+    return mapLocalFeed();
   }
 
+  try {
+    const { data: ideaRows, error: ideaError } = await supabase
+      .from("ideas")
+      .select("*")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false });
+
+    if (ideaError) throw ideaError;
+    if (!ideaRows?.length) return mapLocalFeed();
+
+    const userIds = [...new Set(ideaRows.map((idea) => idea.user_id))];
+    const ideaIds = ideaRows.map((idea) => idea.id);
+
+    const [{ data: profiles, error: profilesError }, { data: votes, error: votesError }, { data: joins, error: joinsError }] =
+      await Promise.all([
+        supabase.from("profiles").select("*").in("user_id", userIds),
+        supabase.from("idea_votes").select("*").in("idea_id", ideaIds),
+        supabase.from("idea_join_requests").select("*").in("idea_id", ideaIds),
+      ]);
+
+    if (profilesError) throw profilesError;
+    if (votesError) throw votesError;
+    if (joinsError) throw joinsError;
+
+    const profileMap = new Map((profiles ?? []).map((profile) => [profile.user_id, profile]));
+    const votesByIdea = groupByIdeaId(votes ?? []);
+    const joinsByIdea = groupByIdeaId(joins ?? []);
+
+    return ideaRows.map((idea) => {
+      const mapped = mapSupabaseIdea(idea, profileMap.get(idea.user_id), votesByIdea.get(idea.id), joinsByIdea.get(idea.id));
+      ensureLocalInteraction(mapped);
+      return mapped;
+    });
+  } catch (error) {
+    if (!isSchemaError(error)) {
+      console.error("Failed to fetch Idea Hub feed", error);
+    }
+    return mapLocalFeed();
+  }
+};
+
+export const createIdeaDraft = async (input: IdeaDraftInput, author: IdeaAuthor) => {
+  if (!isSupabaseConfigured) {
+    const localIdea = buildLocalIdea(input, author);
+    saveStoredIdeas([localIdea, ...getStoredIdeas()]);
+    ensureLocalInteraction(localIdea);
+    return localIdea;
+  }
+
+  try {
+    const payload: TablesInsert<"ideas"> = {
+      user_id: author.userId,
+      title: input.title.trim(),
+      description: input.description.trim(),
+      category: input.category,
+      visibility: input.visibility,
+      stage: input.stage,
+      difficulty: input.difficulty,
+      tags: input.tags,
+      roles_needed: input.rolesNeeded,
+      ai_feedback: buildAiFeedback(input),
+      author_title: author.title,
+      conversion_path: buildConversionPath(input),
+      is_active: true,
+    };
+
+    const { data, error } = await supabase.from("ideas").insert(payload).select("*").single();
+    if (error) throw error;
+
+    const localInteraction = getStoredInteractions();
+    localInteraction[data.id] = {
+      votes: 0,
+      joinRequests: 0,
+      voted: false,
+      joinedRole: null,
+    };
+    saveStoredInteractions(localInteraction);
+
+    return mapSupabaseIdea(data, undefined, [], []);
+  } catch (error) {
+    if (!isSchemaError(error)) {
+      console.error("Failed to create Idea Hub idea in Supabase", error);
+    }
+
+    const localIdea = buildLocalIdea(input, author);
+    saveStoredIdeas([localIdea, ...getStoredIdeas()]);
+    ensureLocalInteraction(localIdea);
+    return localIdea;
+  }
+};
+
+export const voteForIdea = async (ideaId: string, userId: string | undefined) => {
+  const interactions = getStoredInteractions();
+
+  if (interactions[ideaId]?.voted) {
+    return { ok: false as const, reason: "already-voted" as const };
+  }
+
+  if (isSupabaseConfigured && userId) {
+    try {
+      const payload: TablesInsert<"idea_votes"> = {
+        idea_id: ideaId,
+        user_id: userId,
+      };
+
+      const { error } = await supabase.from("idea_votes").insert(payload);
+      if (error) {
+        if ((error as { code?: string }).code === "23505") {
+          interactions[ideaId] = {
+            ...(interactions[ideaId] ?? { votes: 0, joinRequests: 0, joinedRole: null }),
+            voted: true,
+          } as IdeaInteractionState;
+          saveStoredInteractions(interactions);
+          return { ok: false as const, reason: "already-voted" as const };
+        }
+        throw error;
+      }
+
+      interactions[ideaId] = {
+        ...(interactions[ideaId] ?? { votes: 0, joinRequests: 0, joinedRole: null }),
+        voted: true,
+      } as IdeaInteractionState;
+      saveStoredInteractions(interactions);
+      return { ok: true as const };
+    } catch (error) {
+      if (!isSchemaError(error)) {
+        console.error("Failed to save idea vote in Supabase", error);
+      }
+    }
+  }
+
+  const feed = mapLocalFeed();
+  const idea = feed.find((item) => item.id === ideaId);
+  if (!idea) return { ok: false as const, reason: "not-found" as const };
+
   interactions[ideaId] = {
-    ...current,
-    votes: current.votes + 1,
+    votes: (interactions[ideaId]?.votes ?? idea.votes) + 1,
+    joinRequests: interactions[ideaId]?.joinRequests ?? idea.joinRequests,
     voted: true,
+    joinedRole: interactions[ideaId]?.joinedRole ?? null,
   };
   saveStoredInteractions(interactions);
-
   return { ok: true as const };
 };
 
-export const requestIdeaCollaboration = (ideaId: string, role: CollaborationRole) => {
-  const feed = getIdeaHubFeed();
-  const idea = feed.find((item) => item.id === ideaId);
-  if (!idea) return { ok: false, reason: "Idea not found" as const };
-
+export const requestIdeaCollaboration = async (
+  ideaId: string,
+  role: CollaborationRole,
+  userId: string | undefined,
+) => {
   const interactions = getStoredInteractions();
-  const current = interactions[ideaId] ?? {
-    votes: idea.votes,
-    joinRequests: idea.joinRequests,
-    voted: false,
-    joinedRole: null,
-  };
 
-  if (current.joinedRole) {
-    return { ok: false, reason: "already-joined" as const, joinedRole: current.joinedRole };
+  if (interactions[ideaId]?.joinedRole) {
+    return {
+      ok: false as const,
+      reason: "already-joined" as const,
+      joinedRole: interactions[ideaId].joinedRole,
+    };
   }
 
+  if (isSupabaseConfigured && userId) {
+    try {
+      const payload: TablesInsert<"idea_join_requests"> = {
+        idea_id: ideaId,
+        user_id: userId,
+        role,
+      };
+
+      const { error } = await supabase.from("idea_join_requests").insert(payload);
+      if (error) {
+        if ((error as { code?: string }).code === "23505") {
+          interactions[ideaId] = {
+            ...(interactions[ideaId] ?? { votes: 0, joinRequests: 0, voted: false }),
+            joinedRole: role,
+          } as IdeaInteractionState;
+          saveStoredInteractions(interactions);
+          return { ok: false as const, reason: "already-joined" as const, joinedRole: role };
+        }
+        throw error;
+      }
+
+      interactions[ideaId] = {
+        ...(interactions[ideaId] ?? { votes: 0, joinRequests: 0, voted: false }),
+        joinedRole: role,
+      } as IdeaInteractionState;
+      saveStoredInteractions(interactions);
+      return { ok: true as const };
+    } catch (error) {
+      if (!isSchemaError(error)) {
+        console.error("Failed to save idea join request in Supabase", error);
+      }
+    }
+  }
+
+  const feed = mapLocalFeed();
+  const idea = feed.find((item) => item.id === ideaId);
+  if (!idea) return { ok: false as const, reason: "not-found" as const };
+
   interactions[ideaId] = {
-    ...current,
-    joinRequests: current.joinRequests + 1,
+    votes: interactions[ideaId]?.votes ?? idea.votes,
+    joinRequests: (interactions[ideaId]?.joinRequests ?? idea.joinRequests) + 1,
+    voted: interactions[ideaId]?.voted ?? false,
     joinedRole: role,
   };
   saveStoredInteractions(interactions);
-
   return { ok: true as const };
 };
 
 export const getCurrentIdeaInteraction = (ideaId: string) => getStoredInteractions()[ideaId] ?? null;
 
-export const getIdeasByAuthor = (userId: string | undefined) => {
-  if (!userId) return [];
-  return getIdeaHubFeed().filter((idea) => idea.authorUserId === userId);
-};
+export const fetchIdeaContributionSummary = async (userId: string | undefined): Promise<IdeaContributionSummary> => {
+  if (!userId) {
+    return {
+      totalIdeas: 0,
+      totalVotes: 0,
+      totalJoinRequests: 0,
+      authoredIdeas: [],
+    };
+  }
 
-export const getIdeaContributionSummary = (userId: string | undefined) => {
-  const authoredIdeas = getIdeasByAuthor(userId);
+  const feed = await fetchIdeaHubFeed();
+  const authoredIdeas = feed.filter((idea) => idea.authorUserId === userId);
 
   return {
     totalIdeas: authoredIdeas.length,

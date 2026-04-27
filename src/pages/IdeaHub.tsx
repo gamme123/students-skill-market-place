@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
   Bot,
@@ -31,8 +32,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   createIdeaDraft,
+  fetchIdeaHubFeed,
   getCurrentIdeaInteraction,
-  getIdeaHubFeed,
   requestIdeaCollaboration,
   voteForIdea,
 } from "@/lib/ideaHub";
@@ -63,11 +64,18 @@ const defaultForm = {
 
 const IdeaHub = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
-  const [ideas, setIdeas] = useState(() => getIdeaHubFeed());
   const [form, setForm] = useState(defaultForm);
   const [joinRole, setJoinRole] = useState<Record<string, CollaborationRole>>({});
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["idea-hub"],
+    queryFn: fetchIdeaHubFeed,
+  });
+
+  const ideas = data ?? [];
 
   const filteredIdeas = useMemo(() => {
     return ideas.filter((idea) => {
@@ -90,7 +98,12 @@ const IdeaHub = () => {
 
   const userCreatedIdeas = user ? ideas.filter((idea) => idea.authorUserId === user.id) : [];
 
-  const refreshIdeas = () => setIdeas(getIdeaHubFeed());
+  const refreshIdeas = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["idea-hub"] });
+    if (user?.id) {
+      await queryClient.invalidateQueries({ queryKey: ["idea-summary", user.id] });
+    }
+  };
 
   const toggleRole = (role: CollaborationRole) => {
     setForm((current) => ({
@@ -101,7 +114,7 @@ const IdeaHub = () => {
     }));
   };
 
-  const handlePostIdea = () => {
+  const handlePostIdea = async () => {
     if (!user) {
       toast.error("Sign in first to post an idea.");
       return;
@@ -117,7 +130,7 @@ const IdeaHub = () => {
       return;
     }
 
-    createIdeaDraft(
+    await createIdeaDraft(
       {
         title: form.title,
         description: form.description,
@@ -139,29 +152,29 @@ const IdeaHub = () => {
     );
 
     setForm(defaultForm);
-    refreshIdeas();
+    await refreshIdeas();
     toast.success("Your idea is now live in Idea Hub.");
   };
 
-  const handleVote = (ideaId: string) => {
-    const result = voteForIdea(ideaId);
+  const handleVote = async (ideaId: string) => {
+    const result = await voteForIdea(ideaId, user?.id);
     if (!result.ok) {
       toast.message("You already voted for this idea in this browser.");
       return;
     }
 
-    refreshIdeas();
+    await refreshIdeas();
     toast.success("Vote recorded.");
   };
 
-  const handleJoin = (ideaId: string) => {
+  const handleJoin = async (ideaId: string) => {
     if (!user) {
       toast.error("Sign in first to request collaboration.");
       return;
     }
 
     const chosenRole = joinRole[ideaId] ?? "Developer";
-    const result = requestIdeaCollaboration(ideaId, chosenRole);
+    const result = await requestIdeaCollaboration(ideaId, chosenRole, user.id);
     if (!result.ok) {
       toast.message(
         result.reason === "already-joined"
@@ -171,7 +184,7 @@ const IdeaHub = () => {
       return;
     }
 
-    refreshIdeas();
+    await refreshIdeas();
     toast.success(`Collaboration request sent as ${chosenRole.toLowerCase()}.`);
   };
 
