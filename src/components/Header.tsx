@@ -79,6 +79,7 @@ const Header = () => {
             <option value="English">EN</option>
             <option value="Swahili">SW</option>
             <option value="French">FR</option>
+            <option value="Afan Oromo">OM</option>
           </select>
           <select
             className="h-9 rounded-xl border border-input bg-background px-3 text-sm"
@@ -162,6 +163,7 @@ const Header = () => {
                 <option value="English">English</option>
                 <option value="Swahili">Swahili</option>
                 <option value="French">French</option>
+                <option value="Afan Oromo">Afan Oromo</option>
               </select>
               <select
                 className="h-10 rounded-xl border border-input bg-background px-3 text-sm"

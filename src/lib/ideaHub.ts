@@ -154,7 +154,7 @@ export interface WorkspaceContributionSnapshot {
 }
 
 export interface GlobalPlatformPreferences {
-  language: "English" | "Swahili" | "French";
+  language: "English" | "Swahili" | "French" | "Afan Oromo";
   currency: "USD" | "KES" | "EUR";
   visibilityMode: "Student" | "Recruiter" | "Investor";
   networkScope: "Global" | "Local";
@@ -319,6 +319,11 @@ const translatedSummaries = {
     collaboration: "Formez des equipes, attribuez des roles et transformez les idees en execution.",
     investor: "Le mode investisseur met en avant les idees avec le meilleur signal de traction et de lancement.",
     recruiter: "Le mode recruteur met en avant les equipes avec une execution visible et un portefeuille solide.",
+  },
+  "Afan Oromo": {
+    collaboration: "Garee ijaaraa, gahee qoodaa, yaadota gara hojiitti jijjiiraa.",
+    investor: "Haalli invastaraa yaadota harkifannaa fi mallattoo eegalcha cimaa qaban irratti xiyyeeffata.",
+    recruiter: "Haalli qacarrii gareewwan hojii isaanii mul'atan fi poortiifooliyoo cimaa qaban agarsiisa.",
   },
 } as const;
 

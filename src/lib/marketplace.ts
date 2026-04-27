@@ -157,8 +157,10 @@ const toMarketplaceService = (
 };
 
 export const fetchMarketplaceServices = async () => {
+  const fallbackServices = getFallbackServices();
+
   if (!isSupabaseConfigured) {
-    return getFallbackServices();
+    return fallbackServices;
   }
 
   try {
@@ -169,7 +171,7 @@ export const fetchMarketplaceServices = async () => {
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    if (!services?.length) return getFallbackServices();
+    if (!services?.length) return fallbackServices;
 
     const userIds = [...new Set(services.map((service) => service.user_id))];
     const serviceIds = services.map((service) => service.id);
@@ -178,12 +180,15 @@ export const fetchMarketplaceServices = async () => {
       getReviewsByServiceId(serviceIds),
     ]);
 
-    return services.map((service) =>
+    const liveServices = services.map((service) =>
       toMarketplaceService(service, profilesByUserId.get(service.user_id), reviewsByServiceId.get(service.id)),
     );
+    const seenIds = new Set(liveServices.map((service) => service.id));
+
+    return [...liveServices, ...fallbackServices.filter((service) => !seenIds.has(service.id))];
   } catch (error) {
     console.error("Failed to fetch Supabase services", error);
-    return getFallbackServices();
+    return fallbackServices;
   }
 };
 
