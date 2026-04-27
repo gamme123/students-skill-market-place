@@ -12,11 +12,13 @@ import { isSupabaseConfigured } from "@/lib/marketplace";
 
 const IDEAS_STORAGE_KEY = "studenthub.ideaHub.ideas";
 const INTERACTIONS_STORAGE_KEY = "studenthub.ideaHub.interactions";
+const COMMENTS_STORAGE_KEY = "studenthub.ideaHub.comments";
 
 type IdeaRow = Tables<"ideas">;
 type ProfileRow = Tables<"profiles">;
 type IdeaVoteRow = Tables<"idea_votes">;
 type IdeaJoinRequestRow = Tables<"idea_join_requests">;
+type IdeaCommentRow = Tables<"idea_comments">;
 
 interface IdeaInteractionState {
   votes: number;
@@ -49,6 +51,16 @@ export interface IdeaContributionSummary {
   totalVotes: number;
   totalJoinRequests: number;
   authoredIdeas: IdeaItem[];
+}
+
+export interface IdeaComment {
+  id: string;
+  ideaId: string;
+  authorName: string;
+  authorTitle: string;
+  authorUserId?: string;
+  content: string;
+  createdAt: string;
 }
 
 const canUseStorage = () => typeof window !== "undefined" && typeof window.localStorage !== "undefined";
@@ -119,6 +131,10 @@ const getStoredInteractions = () => readJson<IdeaInteractionMap>(INTERACTIONS_ST
 
 const saveStoredInteractions = (interactions: IdeaInteractionMap) => writeJson(INTERACTIONS_STORAGE_KEY, interactions);
 
+const getStoredComments = () => readJson<Record<string, IdeaComment[]>>(COMMENTS_STORAGE_KEY, {});
+
+const saveStoredComments = (comments: Record<string, IdeaComment[]>) => writeJson(COMMENTS_STORAGE_KEY, comments);
+
 const withInteractionState = (idea: IdeaItem, interactions: IdeaInteractionMap): IdeaItem => {
   const state = interactions[idea.id];
   if (!state) return idea;
@@ -178,8 +194,15 @@ const ensureLocalInteraction = (idea: IdeaItem) => {
 
 const mapLocalFeed = () => {
   const interactions = getStoredInteractions();
+  const comments = getStoredComments();
   return [...seedIdeas, ...getStoredIdeas()]
-    .map((idea) => withInteractionState(idea, interactions))
+    .map((idea) => {
+      const localComments = comments[idea.id] ?? [];
+      return {
+        ...withInteractionState(idea, interactions),
+        comments: idea.comments + localComments.length,
+      };
+    })
     .sort((a, b) => {
       const scoreDelta = b.trendScore - a.trendScore;
       if (scoreDelta !== 0) return scoreDelta;
@@ -189,7 +212,13 @@ const mapLocalFeed = () => {
 
 const isSchemaError = (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
-  return message.includes("Could not find the table") || message.includes("idea_votes") || message.includes("idea_join_requests") || message.includes("ideas");
+  return (
+    message.includes("Could not find the table") ||
+    message.includes("idea_votes") ||
+    message.includes("idea_join_requests") ||
+    message.includes("idea_comments") ||
+    message.includes("ideas")
+  );
 };
 
 const mapSupabaseIdea = (
@@ -197,9 +226,11 @@ const mapSupabaseIdea = (
   profile: ProfileRow | undefined,
   votes: IdeaVoteRow[] | undefined,
   joins: IdeaJoinRequestRow[] | undefined,
+  comments: IdeaCommentRow[] | undefined,
 ): IdeaItem => {
   const voteCount = votes?.length ?? 0;
   const joinCount = joins?.length ?? 0;
+  const commentCount = comments?.length ?? 0;
 
   return {
     id: idea.id,
@@ -212,7 +243,7 @@ const mapSupabaseIdea = (
     difficulty: idea.difficulty as IdeaDifficulty,
     trendScore: buildTrendScore(voteCount, joinCount),
     votes: voteCount,
-    comments: 0,
+    comments: commentCount,
     joinRequests: joinCount,
     interestLevel: buildInterestLevel(voteCount, joinCount),
     aiFeedback: idea.ai_feedback,
@@ -262,23 +293,37 @@ export const fetchIdeaHubFeed = async (): Promise<IdeaItem[]> => {
     const userIds = [...new Set(ideaRows.map((idea) => idea.user_id))];
     const ideaIds = ideaRows.map((idea) => idea.id);
 
-    const [{ data: profiles, error: profilesError }, { data: votes, error: votesError }, { data: joins, error: joinsError }] =
+    const [
+      { data: profiles, error: profilesError },
+      { data: votes, error: votesError },
+      { data: joins, error: joinsError },
+      { data: comments, error: commentsError },
+    ] =
       await Promise.all([
         supabase.from("profiles").select("*").in("user_id", userIds),
         supabase.from("idea_votes").select("*").in("idea_id", ideaIds),
         supabase.from("idea_join_requests").select("*").in("idea_id", ideaIds),
+        supabase.from("idea_comments").select("*").in("idea_id", ideaIds).order("created_at", { ascending: false }),
       ]);
 
     if (profilesError) throw profilesError;
     if (votesError) throw votesError;
     if (joinsError) throw joinsError;
+    if (commentsError) throw commentsError;
 
     const profileMap = new Map((profiles ?? []).map((profile) => [profile.user_id, profile]));
     const votesByIdea = groupByIdeaId(votes ?? []);
     const joinsByIdea = groupByIdeaId(joins ?? []);
+    const commentsByIdea = groupByIdeaId(comments ?? []);
 
     return ideaRows.map((idea) => {
-      const mapped = mapSupabaseIdea(idea, profileMap.get(idea.user_id), votesByIdea.get(idea.id), joinsByIdea.get(idea.id));
+      const mapped = mapSupabaseIdea(
+        idea,
+        profileMap.get(idea.user_id),
+        votesByIdea.get(idea.id),
+        joinsByIdea.get(idea.id),
+        commentsByIdea.get(idea.id),
+      );
       ensureLocalInteraction(mapped);
       return mapped;
     });
@@ -327,7 +372,7 @@ export const createIdeaDraft = async (input: IdeaDraftInput, author: IdeaAuthor)
     };
     saveStoredInteractions(localInteraction);
 
-    return mapSupabaseIdea(data, undefined, [], []);
+    return mapSupabaseIdea(data, undefined, [], [], []);
   } catch (error) {
     if (!isSchemaError(error)) {
       console.error("Failed to create Idea Hub idea in Supabase", error);
@@ -478,4 +523,93 @@ export const fetchIdeaContributionSummary = async (userId: string | undefined): 
     totalJoinRequests: authoredIdeas.reduce((sum, idea) => sum + idea.joinRequests, 0),
     authoredIdeas,
   };
+};
+
+export const fetchIdeaComments = async (ideaId: string): Promise<IdeaComment[]> => {
+  if (!isSupabaseConfigured) {
+    return getStoredComments()[ideaId] ?? [];
+  }
+
+  try {
+    const { data: rows, error } = await supabase
+      .from("idea_comments")
+      .select("*")
+      .eq("idea_id", ideaId)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    if (!rows?.length) return getStoredComments()[ideaId] ?? [];
+
+    const userIds = [...new Set(rows.map((row) => row.user_id))];
+    const { data: profiles, error: profilesError } = await supabase.from("profiles").select("*").in("user_id", userIds);
+    if (profilesError) throw profilesError;
+
+    const profileMap = new Map((profiles ?? []).map((profile) => [profile.user_id, profile]));
+
+    return rows.map((row) => ({
+      id: row.id,
+      ideaId: row.idea_id,
+      authorName: formatDisplayTitle(profileMap.get(row.user_id)?.display_name),
+      authorTitle: profileMap.get(row.user_id)?.bio?.trim() || "Student contributor",
+      authorUserId: row.user_id,
+      content: row.content,
+      createdAt: row.created_at,
+    }));
+  } catch (error) {
+    if (!isSchemaError(error)) {
+      console.error("Failed to fetch idea comments", error);
+    }
+    return getStoredComments()[ideaId] ?? [];
+  }
+};
+
+export const createIdeaComment = async (
+  ideaId: string,
+  content: string,
+  author: IdeaAuthor,
+): Promise<IdeaComment | null> => {
+  const trimmed = content.trim();
+  if (!trimmed) return null;
+
+  if (isSupabaseConfigured) {
+    try {
+      const payload: TablesInsert<"idea_comments"> = {
+        idea_id: ideaId,
+        user_id: author.userId,
+        content: trimmed,
+      };
+
+      const { data, error } = await supabase.from("idea_comments").insert(payload).select("*").single();
+      if (error) throw error;
+
+      return {
+        id: data.id,
+        ideaId: data.idea_id,
+        authorName: author.displayName,
+        authorTitle: author.title,
+        authorUserId: author.userId,
+        content: data.content,
+        createdAt: data.created_at,
+      };
+    } catch (error) {
+      if (!isSchemaError(error)) {
+        console.error("Failed to create idea comment in Supabase", error);
+      }
+    }
+  }
+
+  const nextComment: IdeaComment = {
+    id: `comment-${Date.now()}`,
+    ideaId,
+    authorName: author.displayName,
+    authorTitle: author.title,
+    authorUserId: author.userId,
+    content: trimmed,
+    createdAt: new Date().toISOString(),
+  };
+
+  const commentMap = getStoredComments();
+  commentMap[ideaId] = [nextComment, ...(commentMap[ideaId] ?? [])];
+  saveStoredComments(commentMap);
+  return nextComment;
 };

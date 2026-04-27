@@ -118,3 +118,41 @@ FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 CREATE INDEX idx_idea_join_requests_idea_id ON public.idea_join_requests(idea_id);
 CREATE INDEX idx_idea_join_requests_user_id ON public.idea_join_requests(user_id);
+
+CREATE TABLE public.idea_comments (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  idea_id UUID REFERENCES public.ideas(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.idea_comments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can view idea comments"
+ON public.idea_comments
+FOR SELECT
+USING (true);
+
+CREATE POLICY "Users can create their own idea comments"
+ON public.idea_comments
+FOR INSERT
+WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own idea comments"
+ON public.idea_comments
+FOR UPDATE
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own idea comments"
+ON public.idea_comments
+FOR DELETE
+USING (auth.uid() = user_id);
+
+CREATE TRIGGER update_idea_comments_updated_at
+BEFORE UPDATE ON public.idea_comments
+FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE INDEX idx_idea_comments_idea_id ON public.idea_comments(idea_id);
+CREATE INDEX idx_idea_comments_user_id ON public.idea_comments(user_id);
