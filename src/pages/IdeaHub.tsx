@@ -3,10 +3,13 @@ import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
+  BarChart3,
   Bot,
+  BriefcaseBusiness,
   Filter,
   Flame,
   Globe2,
+  Landmark,
   Lightbulb,
   MessageSquareText,
   Rocket,
@@ -60,6 +63,12 @@ const defaultForm = {
   difficulty: "Beginner" as IdeaDifficulty,
   tags: "",
   rolesNeeded: ["Developer"] as CollaborationRole[],
+};
+
+const getIdeaScore = (votes: number, joinRequests: number, difficulty: IdeaDifficulty, startupMode?: boolean) => {
+  const difficultyBoost = difficulty === "Advanced" ? 0.6 : difficulty === "Intermediate" ? 0.35 : 0.15;
+  const startupBoost = startupMode ? 0.45 : 0.1;
+  return Math.min(9.9, Number((5.2 + votes / 120 + joinRequests / 16 + difficultyBoost + startupBoost).toFixed(1)));
 };
 
 const IdeaHub = () => {
@@ -423,9 +432,15 @@ const IdeaHub = () => {
 
         <section className="mt-10 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-4">
+            {isLoading ? (
+              <div className="rounded-[1.5rem] border border-border bg-card p-8 text-center text-sm text-muted-foreground shadow-card">
+                Loading Idea Hub ecosystem...
+              </div>
+            ) : null}
             {filteredIdeas.map((idea) => {
               const interaction = getCurrentIdeaInteraction(idea.id);
               const selectedRole = joinRole[idea.id] ?? idea.rolesNeeded[0] ?? "Developer";
+              const ideaScore = getIdeaScore(idea.votes, idea.joinRequests, idea.difficulty, idea.startupMode);
 
               return (
                 <div key={idea.id} className="glass-panel rounded-[1.5rem] border border-white/70 p-5 shadow-card">
@@ -483,6 +498,10 @@ const IdeaHub = () => {
 
                   <div className="mt-5 grid gap-3 md:grid-cols-4">
                     <div className="rounded-2xl bg-background/75 p-4">
+                      <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Idea score</p>
+                      <p className="mt-2 text-xl font-bold text-foreground">{ideaScore}/10</p>
+                    </div>
+                    <div className="rounded-2xl bg-background/75 p-4">
                       <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Trend score</p>
                       <p className="mt-2 text-xl font-bold text-foreground">{idea.trendScore}</p>
                     </div>
@@ -497,6 +516,63 @@ const IdeaHub = () => {
                     <div className="rounded-2xl bg-background/75 p-4">
                       <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Interest</p>
                       <p className="mt-2 text-sm font-semibold text-foreground">{idea.interestLevel}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+                    <div className="rounded-[1.4rem] border border-border/70 bg-background/75 p-4">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <Rocket className="h-4 w-4 text-primary" />
+                        Idea incubator mode
+                      </div>
+                      <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                        {idea.startupMode
+                          ? "This idea is positioned as a startup-track concept with execution milestones and team-building potential."
+                          : "This idea is currently closer to marketplace monetization than startup incubation."}
+                      </p>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {(idea.milestones ?? []).map((milestone) => (
+                          <span
+                            key={milestone}
+                            className="rounded-full border border-border bg-background/80 px-3 py-1 text-xs text-muted-foreground"
+                          >
+                            {milestone}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[1.4rem] border border-border/70 bg-background/75 p-4">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-2xl bg-background/80 p-4">
+                          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                            <BriefcaseBusiness className="h-4 w-4 text-accent" />
+                            Recruiter mode
+                          </div>
+                          <p className="mt-2 text-xs leading-6 text-muted-foreground">{idea.recruiterInterest}</p>
+                        </div>
+                        <div className="rounded-2xl bg-background/80 p-4">
+                          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                            <Landmark className="h-4 w-4 text-primary" />
+                            Investor mode
+                          </div>
+                          <p className="mt-2 text-xs leading-6 text-muted-foreground">{idea.investorInterest}</p>
+                        </div>
+                        <div className="rounded-2xl bg-background/80 p-4">
+                          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                            <BarChart3 className="h-4 w-4 text-emerald-600" />
+                            Competition track
+                          </div>
+                          <p className="mt-2 text-xs leading-6 text-muted-foreground">{idea.competitionTrack}</p>
+                        </div>
+                        <div className="rounded-2xl bg-background/80 p-4">
+                          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                            <Globe2 className="h-4 w-4 text-sky-600" />
+                            Connected tools
+                          </div>
+                          <p className="mt-2 text-xs leading-6 text-muted-foreground">{(idea.connectedTools ?? []).join(" • ")}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -597,7 +673,8 @@ const IdeaHub = () => {
                 <p>1. Students can post ideas with category, stage, tags, and visibility.</p>
                 <p>2. Other students can upvote and request to join ideas with a specific role.</p>
                 <p>3. New ideas and interaction counts persist after refresh in the live browser.</p>
-                <p>4. Profile pages can now reflect Idea Hub contribution signals.</p>
+                <p>4. Idea cards now show incubator, idea score, recruiter, investor, and integration cues.</p>
+                <p>5. Profile pages can now reflect Idea Hub contribution signals.</p>
               </div>
             </div>
 

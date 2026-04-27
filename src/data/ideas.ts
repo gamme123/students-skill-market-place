@@ -25,6 +25,12 @@ export interface IdeaItem {
   conversionPath: string;
   createdAt: string;
   isUserGenerated?: boolean;
+  startupMode?: boolean;
+  milestones?: string[];
+  connectedTools?: string[];
+  recruiterInterest?: string;
+  investorInterest?: string;
+  competitionTrack?: string;
 }
 
 export const ideaCategories = ["AI", "Web", "Research", "Business", "EdTech", "Health", "Design", "Climate"];
@@ -60,6 +66,12 @@ export const ideas: IdeaItem[] = [
     rolesNeeded: ["Developer", "Designer", "Researcher"],
     conversionPath: "Could become a SaaS study product and a tutoring marketplace add-on.",
     createdAt: "2026-04-16T09:30:00.000Z",
+    startupMode: true,
+    milestones: ["Problem validation", "MVP copilot", "Campus beta", "Subscription launch"],
+    connectedTools: ["GitHub", "Drive", "Pitch deck"],
+    recruiterInterest: "High EdTech signal",
+    investorInterest: "Pre-seed attractive",
+    competitionTrack: "Best AI idea",
   },
   {
     id: "idea-2",
@@ -83,6 +95,12 @@ export const ideas: IdeaItem[] = [
     rolesNeeded: ["Designer", "Strategist", "Writer"],
     conversionPath: "Can convert into a sellable marketplace package, template store, or founder services bundle.",
     createdAt: "2026-04-18T13:00:00.000Z",
+    startupMode: true,
+    milestones: ["Template system", "Founder beta users", "Marketplace bundle"],
+    connectedTools: ["Figma", "Drive", "LinkedIn"],
+    recruiterInterest: "Strong brand systems profile",
+    investorInterest: "Tooling niche potential",
+    competitionTrack: "Startup design challenge",
   },
   {
     id: "idea-3",
@@ -106,6 +124,12 @@ export const ideas: IdeaItem[] = [
     rolesNeeded: ["Researcher", "Developer", "Strategist"],
     conversionPath: "Can evolve into a team workspace and academic project management product.",
     createdAt: "2026-04-20T08:15:00.000Z",
+    startupMode: true,
+    milestones: ["Team workspace prototype", "Capstone pilots", "University partnerships"],
+    connectedTools: ["Drive", "GitHub", "Notion"],
+    recruiterInterest: "Strong research ops signal",
+    investorInterest: "B2B education workflow",
+    competitionTrack: "Research impact sprint",
   },
   {
     id: "idea-4",
@@ -129,5 +153,11 @@ export const ideas: IdeaItem[] = [
     rolesNeeded: ["Strategist", "Writer", "Designer"],
     conversionPath: "Can become both a marketplace category and a micro-incubator for creator service teams.",
     createdAt: "2026-04-12T15:00:00.000Z",
+    startupMode: false,
+    milestones: ["Offer packaging", "Creator portfolio proof", "Recurring clients"],
+    connectedTools: ["Drive", "LinkedIn"],
+    recruiterInterest: "Creator economy fit",
+    investorInterest: "Service incubation niche",
+    competitionTrack: "Creator growth lab",
   },
 ];

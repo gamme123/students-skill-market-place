@@ -89,6 +89,26 @@ const buildAiFeedback = (input: IdeaDraftInput) => {
 const buildConversionPath = (input: IdeaDraftInput) =>
   `Validate the concept, form a ${input.rolesNeeded.length ? input.rolesNeeded[0].toLowerCase() : "core"}-led team, then convert it into a marketplace project or startup MVP.`;
 
+const defaultMilestonesForStage = (stage: IdeaStage) => {
+  switch (stage) {
+    case "Concept":
+      return ["Problem framing", "First validation interviews", "Opportunity brief"];
+    case "Validation":
+      return ["Prototype MVP", "Early testers", "Signal review"];
+    case "Building":
+      return ["Active build sprint", "Closed beta", "Launch prep"];
+    default:
+      return ["Marketplace packaging", "Demo assets", "Revenue launch"];
+  }
+};
+
+const defaultToolsForCategory = (category: string) => {
+  if (category === "Design") return ["Figma", "Drive", "LinkedIn"];
+  if (category === "Research") return ["Drive", "Notion", "GitHub"];
+  if (category === "AI" || category === "Web") return ["GitHub", "Drive", "Pitch deck"];
+  return ["Drive", "LinkedIn"];
+};
+
 const formatDisplayTitle = (raw: string | null | undefined) => raw?.trim() || "Student builder";
 
 const getStoredIdeas = () => readJson<IdeaItem[]>(IDEAS_STORAGE_KEY, []);
@@ -136,6 +156,12 @@ const buildLocalIdea = (input: IdeaDraftInput, author: IdeaAuthor) => {
     conversionPath: buildConversionPath(input),
     createdAt: now,
     isUserGenerated: true,
+    startupMode: input.stage !== "Ready for Marketplace",
+    milestones: defaultMilestonesForStage(input.stage),
+    connectedTools: defaultToolsForCategory(input.category),
+    recruiterInterest: input.category === "AI" ? "High product talent signal" : "Strong execution signal",
+    investorInterest: input.stage === "Validation" || input.stage === "Building" ? "Potential incubator fit" : "Early concept watchlist",
+    competitionTrack: `${input.category} spotlight`,
   } satisfies IdeaItem;
 };
 
@@ -197,6 +223,13 @@ const mapSupabaseIdea = (
     conversionPath: idea.conversion_path,
     createdAt: idea.created_at,
     isUserGenerated: true,
+    startupMode: idea.stage !== "Ready for Marketplace",
+    milestones: defaultMilestonesForStage(idea.stage as IdeaStage),
+    connectedTools: defaultToolsForCategory(idea.category),
+    recruiterInterest: idea.category === "AI" ? "High product talent signal" : "Strong execution signal",
+    investorInterest:
+      idea.stage === "Validation" || idea.stage === "Building" ? "Potential incubator fit" : "Early concept watchlist",
+    competitionTrack: `${idea.category} spotlight`,
   };
 };
 

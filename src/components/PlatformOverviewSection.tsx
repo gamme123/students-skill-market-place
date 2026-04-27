@@ -21,7 +21,7 @@ const ecosystemCards = [
   {
     icon: Workflow,
     title: "Collaboration hub",
-    detail: "A future-ready path for idea sharing, finding teammates, and building serious student-led work together.",
+    detail: "A future-ready path for idea sharing, smart team formation, and building serious student-led work together.",
   },
   {
     icon: ShieldCheck,
@@ -31,7 +31,7 @@ const ecosystemCards = [
   {
     icon: Bot,
     title: "AI-powered direction",
-    detail: "StudentHub is being shaped for smart matching, opportunity guidance, and future portfolio intelligence.",
+    detail: "StudentHub is being shaped for smart matching, idea scoring, opportunity guidance, and future portfolio intelligence.",
   },
 ];
 
@@ -97,10 +97,10 @@ const PlatformOverviewSection = () => (
             <Sparkles className="h-4 w-4" />
             Platform vision
           </div>
-          <h3 className="font-display mt-4 text-3xl font-bold text-foreground">The roadmap is a marketplace first, then a collaboration and portfolio ecosystem.</h3>
+          <h3 className="font-display mt-4 text-3xl font-bold text-foreground">The roadmap is a marketplace first, then a startup, collaboration, and portfolio ecosystem.</h3>
           <p className="mt-4 text-sm leading-7 text-muted-foreground">
             That means the homepage should communicate both what works today and what StudentHub is growing into:
-            a place for talent discovery, proof-of-work, smarter matching, and meaningful student-led collaboration.
+            a place for talent discovery, proof-of-work, smarter matching, incubator-style execution, and meaningful student-led collaboration.
           </p>
         </div>
 

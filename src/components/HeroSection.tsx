@@ -13,8 +13,8 @@ const stats = [
 
 const signals = [
   { icon: BriefcaseBusiness, title: "Marketplace", detail: "Sell services, research, code, design, and academic deliverables." },
-  { icon: Workflow, title: "Collaboration", detail: "Move from one-off gigs into teams, portfolios, and long-term project building." },
-  { icon: Bot, title: "AI direction", detail: "Designed for smart matching, portfolio growth, and future learning assistance." },
+  { icon: Workflow, title: "Incubator layer", detail: "Move from raw concepts into teams, milestones, demos, and launch-ready student products." },
+  { icon: Bot, title: "AI direction", detail: "Designed for smart matching, idea scoring, and future co-founder assistance." },
 ];
 
 const HeroSection = () => {
@@ -33,7 +33,7 @@ const HeroSection = () => {
         <div className="animate-fade-up">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-white/70 px-4 py-2 text-sm font-medium text-primary shadow-card">
             <Sparkles className="h-4 w-4" />
-            Reimagined as a globally credible student platform
+            Global student innovation and marketplace ecosystem
           </div>
 
           <h1 className="font-display mt-6 max-w-4xl text-4xl font-bold leading-[1.02] tracking-tight text-foreground md:text-5xl lg:text-6xl">
@@ -41,9 +41,9 @@ const HeroSection = () => {
           </h1>
 
           <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
-            Built as a modern marketplace and collaboration layer for ambitious students, StudentHub helps people sell expertise,
-            showcase proof of work, discover project partners, and grow a professional identity that feels investor-grade and
-            internationally relevant.
+            Built as a modern marketplace, idea hub, and collaboration layer for ambitious students, StudentHub helps people
+            sell expertise, launch ideas, form teams, showcase proof of work, and grow a professional identity that feels
+            globally credible and investor-aware.
           </p>
 
           <form
