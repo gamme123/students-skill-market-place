@@ -387,7 +387,13 @@ const IdeaHub = () => {
           <div className="space-y-4">
             {isLoading ? (
               <div className="rounded-[1.5rem] border border-border bg-card p-8 text-center text-sm text-muted-foreground shadow-card">
-                Loading Idea Hub ecosystem...
+                StudentHub is loading the live idea ecosystem and collaboration signals.
+              </div>
+            ) : null}
+
+            {!isLoading && !filteredIdeas.length ? (
+              <div className="rounded-[1.5rem] border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground shadow-card">
+                No ideas match your current search or category filter. Clear the search or switch categories to discover more concepts.
               </div>
             ) : null}
 
@@ -631,7 +637,7 @@ const IdeaHub = () => {
                         ))
                       ) : (
                         <div className="rounded-2xl border border-dashed border-border bg-background/70 p-4 text-sm text-muted-foreground">
-                          No comments yet. Be the first to validate or challenge this idea.
+                          No validation notes yet. Be the first to challenge, refine, or support this idea.
                         </div>
                       )}
                     </div>
@@ -661,7 +667,7 @@ const IdeaHub = () => {
                 <Flame className="h-5 w-5 text-accent" />
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.24em] text-accent">Trending ideas</p>
-                  <h3 className="font-display text-2xl font-bold text-foreground">What students are reacting to</h3>
+                  <h3 className="font-display text-2xl font-bold text-foreground">Where momentum is building</h3>
                 </div>
               </div>
               <div className="mt-5 space-y-4">
@@ -681,7 +687,7 @@ const IdeaHub = () => {
                 <Globe2 className="h-5 w-5 text-primary" />
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Ideas for you</p>
-                  <h3 className="font-display text-2xl font-bold text-foreground">Recommended by skill adjacency</h3>
+                  <h3 className="font-display text-2xl font-bold text-foreground">Recommended by role and category fit</h3>
                 </div>
               </div>
               <div className="mt-5 space-y-4">

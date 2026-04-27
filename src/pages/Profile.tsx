@@ -260,7 +260,7 @@ const Profile = () => {
                 ))}
               </div>
               <div className="mt-6 rounded-[1.4rem] border border-dashed border-border bg-background/70 p-4 text-sm leading-7 text-muted-foreground">
-                Phase 7 uses this DNA to support co-founder matching, recruiter visibility, and more adaptive recommendations across the platform.
+                Skill DNA now helps power co-founder matching, recruiter visibility, and smarter recommendations across StudentHub.
               </div>
             </div>
           </div>
@@ -305,7 +305,7 @@ const Profile = () => {
                 As soon as you publish services, StudentHub can start turning them into visible portfolio highlights and stronger credibility signals.
               </p>
               <Button asChild className="mt-6">
-                <Link to="/explore">Study the marketplace</Link>
+                <Link to="/explore">Explore live services</Link>
               </Button>
             </div>
           )}
@@ -372,7 +372,7 @@ const Profile = () => {
                 Publish your first idea to start building founder credibility and collaboration momentum on your profile.
               </p>
               <Button asChild className="mt-6">
-                <Link to="/ideas">Open Idea Hub</Link>
+                <Link to="/ideas">Publish your first idea</Link>
               </Button>
             </div>
           )}
@@ -404,10 +404,10 @@ const Profile = () => {
             <div className="rounded-3xl border border-dashed border-border bg-secondary/40 p-10 text-center">
               <h3 className="text-xl font-semibold text-foreground">No services yet</h3>
               <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
-                Your account is connected and ready. The next step would be adding a seller dashboard or a create-service form.
+                Your identity layer is ready. The next step is publishing services so buyers and collaborators can see what you can deliver.
               </p>
               <Button asChild className="mt-6">
-                <Link to="/explore">Browse marketplace</Link>
+                <Link to="/explore">Browse the marketplace</Link>
               </Button>
             </div>
           )}
