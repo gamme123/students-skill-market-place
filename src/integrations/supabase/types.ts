@@ -170,6 +170,199 @@ export type Database = {
         }
         Relationships: []
       }
+      idea_workspace_members: {
+        Row: {
+          id: string
+          is_lead: boolean
+          joined_at: string
+          role: string
+          title: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          id?: string
+          is_lead?: boolean
+          joined_at?: string
+          role: string
+          title?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          id?: string
+          is_lead?: boolean
+          joined_at?: string
+          role?: string
+          title?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idea_workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "idea_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      idea_workspace_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idea_workspace_messages_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "idea_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      idea_workspace_milestones: {
+        Row: {
+          created_at: string
+          id: string
+          owner_role: string
+          status: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner_role: string
+          status?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner_role?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idea_workspace_milestones_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "idea_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      idea_workspace_tasks: {
+        Row: {
+          created_at: string
+          id: string
+          owner_role: string
+          status: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner_role: string
+          status?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner_role?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idea_workspace_tasks_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "idea_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      idea_workspaces: {
+        Row: {
+          converted_at: string | null
+          created_at: string
+          id: string
+          idea_id: string
+          is_converted: boolean
+          launch_status: string
+          project_title: string | null
+          team_lead_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          converted_at?: string | null
+          created_at?: string
+          id?: string
+          idea_id: string
+          is_converted?: boolean
+          launch_status?: string
+          project_title?: string | null
+          team_lead_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          converted_at?: string | null
+          created_at?: string
+          id?: string
+          idea_id?: string
+          is_converted?: boolean
+          launch_status?: string
+          project_title?: string | null
+          team_lead_user_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "idea_workspaces_idea_id_fkey"
+            columns: ["idea_id"]
+            isOneToOne: true
+            referencedRelation: "ideas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string

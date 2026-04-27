@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables, TablesInsert } from "@/integrations/supabase/types";
+import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import {
   ideas as seedIdeas,
   type CollaborationRole,
@@ -22,6 +22,11 @@ type ProfileRow = Tables<"profiles">;
 type IdeaVoteRow = Tables<"idea_votes">;
 type IdeaJoinRequestRow = Tables<"idea_join_requests">;
 type IdeaCommentRow = Tables<"idea_comments">;
+type IdeaWorkspaceRow = Tables<"idea_workspaces">;
+type IdeaWorkspaceMemberRow = Tables<"idea_workspace_members">;
+type IdeaWorkspaceTaskRow = Tables<"idea_workspace_tasks">;
+type IdeaWorkspaceMilestoneRow = Tables<"idea_workspace_milestones">;
+type IdeaWorkspaceMessageRow = Tables<"idea_workspace_messages">;
 
 interface IdeaInteractionState {
   votes: number;
@@ -399,8 +404,75 @@ const isSchemaError = (error: unknown) => {
     message.includes("idea_votes") ||
     message.includes("idea_join_requests") ||
     message.includes("idea_comments") ||
-    message.includes("ideas")
+    message.includes("ideas") ||
+    message.includes("idea_workspaces") ||
+    message.includes("idea_workspace_members") ||
+    message.includes("idea_workspace_tasks") ||
+    message.includes("idea_workspace_milestones") ||
+    message.includes("idea_workspace_messages")
   );
+};
+
+const mapSupabaseWorkspace = (
+  workspace: IdeaWorkspaceRow,
+  idea: IdeaRow | undefined,
+  members: IdeaWorkspaceMemberRow[],
+  tasks: IdeaWorkspaceTaskRow[],
+  milestones: IdeaWorkspaceMilestoneRow[],
+  messages: IdeaWorkspaceMessageRow[],
+  profiles: ProfileRow[],
+): IdeaWorkspace => {
+  const profileMap = new Map(profiles.map((profile) => [profile.user_id, profile]));
+  const ideaTitle = idea?.title ?? workspace.project_title ?? "Workspace";
+  const stage = (idea?.stage ?? "Validation") as IdeaStage;
+  const category = idea?.category ?? "AI";
+
+  return {
+    id: workspace.id,
+    ideaId: workspace.idea_id,
+    ideaTitle,
+    category,
+    stage: workspace.is_converted ? "Ready for Marketplace" : stage,
+    members: members.map((member) => ({
+      userId: member.user_id,
+      displayName: formatDisplayTitle(profileMap.get(member.user_id)?.display_name),
+      role: member.role as CollaborationRole,
+      title: member.title,
+      joinedAt: member.joined_at,
+      isLead: member.is_lead,
+    })),
+    openRoles: ((idea?.roles_needed ?? []) as CollaborationRole[]).filter(
+      (role) => !members.some((member) => member.role === role),
+    ),
+    tasks: tasks.map((task) => ({
+      id: task.id,
+      title: task.title,
+      ownerRole: task.owner_role as CollaborationRole,
+      status: task.status as WorkspaceTask["status"],
+    })),
+    messages: messages.map((message) => ({
+      id: message.id,
+      userId: message.user_id,
+      displayName: formatDisplayTitle(profileMap.get(message.user_id)?.display_name),
+      role: message.role as CollaborationRole,
+      content: message.content,
+      createdAt: message.created_at,
+    })),
+    milestones: milestones.map((milestone) => milestone.title),
+    milestoneBoard: milestones.map((milestone) => ({
+      id: milestone.id,
+      title: milestone.title,
+      ownerRole: milestone.owner_role as CollaborationRole,
+      status: milestone.status as WorkspaceMilestone["status"],
+    })),
+    launch: {
+      converted: workspace.is_converted,
+      projectTitle: workspace.project_title ?? undefined,
+      convertedAt: workspace.converted_at ?? undefined,
+      launchStatus: workspace.launch_status as ProjectLaunchRecord["launchStatus"],
+    },
+    createdAt: workspace.created_at,
+  };
 };
 
 const mapSupabaseIdea = (
@@ -452,6 +524,17 @@ const groupByIdeaId = <T extends { idea_id: string }>(rows: T[]) =>
       const list = map.get(row.idea_id) ?? [];
       list.push(row);
       map.set(row.idea_id, list);
+      return map;
+    },
+    new Map<string, T[]>(),
+  );
+
+const groupByWorkspaceId = <T extends { workspace_id: string }>(rows: T[]) =>
+  rows.reduce(
+    (map, row) => {
+      const list = map.get(row.workspace_id) ?? [];
+      list.push(row);
+      map.set(row.workspace_id, list);
       return map;
     },
     new Map<string, T[]>(),
@@ -845,7 +928,86 @@ export const createIdeaComment = async (
   return nextComment;
 };
 
-export const fetchIdeaWorkspaces = async (): Promise<IdeaWorkspace[]> => getStoredWorkspaces();
+export const fetchIdeaWorkspaces = async (): Promise<IdeaWorkspace[]> => {
+  if (!isSupabaseConfigured) {
+    return getStoredWorkspaces();
+  }
+
+  try {
+    const { data: workspaceRows, error: workspaceError } = await supabase
+      .from("idea_workspaces")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (workspaceError) throw workspaceError;
+    if (!workspaceRows?.length) return getStoredWorkspaces();
+
+    const workspaceIds = workspaceRows.map((workspace) => workspace.id);
+    const ideaIds = workspaceRows.map((workspace) => workspace.idea_id);
+
+    const [
+      { data: ideas, error: ideasError },
+      { data: members, error: membersError },
+      { data: tasks, error: tasksError },
+      { data: milestones, error: milestonesError },
+      { data: messages, error: messagesError },
+    ] = await Promise.all([
+      supabase.from("ideas").select("*").in("id", ideaIds),
+      supabase.from("idea_workspace_members").select("*").in("workspace_id", workspaceIds),
+      supabase.from("idea_workspace_tasks").select("*").in("workspace_id", workspaceIds).order("created_at", { ascending: false }),
+      supabase
+        .from("idea_workspace_milestones")
+        .select("*")
+        .in("workspace_id", workspaceIds)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("idea_workspace_messages")
+        .select("*")
+        .in("workspace_id", workspaceIds)
+        .order("created_at", { ascending: false }),
+    ]);
+
+    if (ideasError) throw ideasError;
+    if (membersError) throw membersError;
+    if (tasksError) throw tasksError;
+    if (milestonesError) throw milestonesError;
+    if (messagesError) throw messagesError;
+
+    const userIds = [
+      ...new Set([
+        ...workspaceRows.map((workspace) => workspace.team_lead_user_id),
+        ...(members ?? []).map((member) => member.user_id),
+        ...(messages ?? []).map((message) => message.user_id),
+      ]),
+    ];
+
+    const { data: profiles, error: profilesError } = await supabase.from("profiles").select("*").in("user_id", userIds);
+    if (profilesError) throw profilesError;
+
+    const ideasById = new Map((ideas ?? []).map((idea) => [idea.id, idea]));
+    const membersByWorkspace = groupByWorkspaceId(members ?? []);
+    const tasksByWorkspace = groupByWorkspaceId(tasks ?? []);
+    const milestonesByWorkspace = groupByWorkspaceId(milestones ?? []);
+    const messagesByWorkspace = groupByWorkspaceId(messages ?? []);
+
+    return workspaceRows.map((workspace) =>
+      mapSupabaseWorkspace(
+        workspace,
+        ideasById.get(workspace.idea_id),
+        membersByWorkspace.get(workspace.id) ?? [],
+        tasksByWorkspace.get(workspace.id) ?? [],
+        milestonesByWorkspace.get(workspace.id) ?? [],
+        messagesByWorkspace.get(workspace.id) ?? [],
+        profiles ?? [],
+      ),
+    );
+  } catch (error) {
+    if (!isSchemaError(error)) {
+      console.error("Failed to fetch idea workspaces", error);
+    }
+    return getStoredWorkspaces();
+  }
+};
 
 export const getWorkspaceHealth = (workspace: IdeaWorkspace | null | undefined): WorkspaceHealthSnapshot => {
   if (!workspace) {
@@ -932,6 +1094,100 @@ export const createIdeaWorkspace = async (
   owner: IdeaAuthor,
   chosenRole: CollaborationRole,
 ): Promise<IdeaWorkspace> => {
+  if (isSupabaseConfigured) {
+    try {
+      const { data: existing, error: existingError } = await supabase
+        .from("idea_workspaces")
+        .select("*")
+        .eq("idea_id", idea.id)
+        .maybeSingle();
+
+      if (existingError) throw existingError;
+
+      if (existing) {
+        const existingWorkspaces = await fetchIdeaWorkspaces();
+        const matchedWorkspace = existingWorkspaces.find((workspace) => workspace.id === existing.id);
+        if (matchedWorkspace) return matchedWorkspace;
+      }
+
+      const milestoneTitles = idea.milestones ?? defaultMilestonesForStage(idea.stage);
+      const [firstRole, secondRole, thirdRole] = defaultMilestoneRoles(idea.rolesNeeded);
+
+      const { data: workspaceRow, error: workspaceError } = await supabase
+        .from("idea_workspaces")
+        .insert({
+          idea_id: idea.id,
+          team_lead_user_id: owner.userId,
+        })
+        .select("*")
+        .single();
+
+      if (workspaceError) throw workspaceError;
+
+      const workspaceId = workspaceRow.id;
+      const operations = await Promise.all([
+        supabase.from("idea_workspace_members").insert({
+          workspace_id: workspaceId,
+          user_id: owner.userId,
+          role: chosenRole,
+          title: owner.title,
+          is_lead: true,
+        }),
+        supabase.from("idea_workspace_tasks").insert([
+          {
+            workspace_id: workspaceId,
+            title: "Align the first MVP scope",
+            owner_role: "Strategist",
+            status: "Todo",
+          },
+          {
+            workspace_id: workspaceId,
+            title: "Assign delivery roles and owners",
+            owner_role: "Developer",
+            status: "In Progress",
+          },
+        ]),
+        supabase.from("idea_workspace_messages").insert({
+          workspace_id: workspaceId,
+          user_id: owner.userId,
+          role: chosenRole,
+          content: "Workspace created. Let's define the MVP and assign the first sprint clearly.",
+        }),
+        supabase.from("idea_workspace_milestones").insert([
+          {
+            workspace_id: workspaceId,
+            title: milestoneTitles[0] ?? "Problem framing",
+            owner_role: firstRole,
+            status: "In Progress",
+          },
+          {
+            workspace_id: workspaceId,
+            title: milestoneTitles[1] ?? "Prototype MVP",
+            owner_role: secondRole,
+            status: "Todo",
+          },
+          {
+            workspace_id: workspaceId,
+            title: milestoneTitles[2] ?? "Launch prep",
+            owner_role: thirdRole,
+            status: "Todo",
+          },
+        ]),
+      ]);
+
+      const failingOperation = operations.find((operation) => operation.error);
+      if (failingOperation?.error) throw failingOperation.error;
+
+      const nextWorkspaces = await fetchIdeaWorkspaces();
+      const nextWorkspace = nextWorkspaces.find((workspace) => workspace.id === workspaceId);
+      if (nextWorkspace) return nextWorkspace;
+    } catch (error) {
+      if (!isSchemaError(error)) {
+        console.error("Failed to create workspace in Supabase", error);
+      }
+    }
+  }
+
   const existing = getStoredWorkspaces().find((workspace) => workspace.ideaId === idea.id);
   if (existing) {
     return existing;
@@ -1018,6 +1274,46 @@ export const joinIdeaWorkspace = async (
   member: IdeaAuthor,
   role: CollaborationRole,
 ): Promise<IdeaWorkspace | null> => {
+  if (isSupabaseConfigured) {
+    try {
+      const { data: existingMember, error: memberCheckError } = await supabase
+        .from("idea_workspace_members")
+        .select("*")
+        .eq("workspace_id", workspaceId)
+        .eq("user_id", member.userId)
+        .maybeSingle();
+
+      if (memberCheckError) throw memberCheckError;
+
+      if (!existingMember) {
+        const [memberResult, messageResult] = await Promise.all([
+          supabase.from("idea_workspace_members").insert({
+            workspace_id: workspaceId,
+            user_id: member.userId,
+            role,
+            title: member.title,
+          }),
+          supabase.from("idea_workspace_messages").insert({
+            workspace_id: workspaceId,
+            user_id: member.userId,
+            role,
+            content: `Joined the workspace as ${role.toLowerCase()} and is ready to contribute.`,
+          }),
+        ]);
+
+        if (memberResult.error) throw memberResult.error;
+        if (messageResult.error) throw messageResult.error;
+      }
+
+      const nextWorkspaces = await fetchIdeaWorkspaces();
+      return nextWorkspaces.find((workspace) => workspace.id === workspaceId) ?? null;
+    } catch (error) {
+      if (!isSchemaError(error)) {
+        console.error("Failed to join workspace in Supabase", error);
+      }
+    }
+  }
+
   const workspaces = getStoredWorkspaces();
   const workspace = workspaces.find((item) => item.id === workspaceId);
   if (!workspace) return null;
@@ -1066,6 +1362,26 @@ export const sendWorkspaceMessage = async (
   const trimmed = content.trim();
   if (!trimmed) return null;
 
+  if (isSupabaseConfigured) {
+    try {
+      const { error } = await supabase.from("idea_workspace_messages").insert({
+        workspace_id: workspaceId,
+        user_id: member.userId,
+        role,
+        content: trimmed,
+      });
+
+      if (error) throw error;
+
+      const nextWorkspaces = await fetchIdeaWorkspaces();
+      return nextWorkspaces.find((workspace) => workspace.id === workspaceId) ?? null;
+    } catch (error) {
+      if (!isSchemaError(error)) {
+        console.error("Failed to send workspace message in Supabase", error);
+      }
+    }
+  }
+
   const workspaces = getStoredWorkspaces();
   const workspace = workspaces.find((item) => item.id === workspaceId);
   if (!workspace) return null;
@@ -1097,6 +1413,26 @@ export const addWorkspaceTask = async (
   const trimmed = title.trim();
   if (!trimmed) return null;
 
+  if (isSupabaseConfigured) {
+    try {
+      const { error } = await supabase.from("idea_workspace_tasks").insert({
+        workspace_id: workspaceId,
+        title: trimmed,
+        owner_role: ownerRole,
+        status: "Todo",
+      });
+
+      if (error) throw error;
+
+      const nextWorkspaces = await fetchIdeaWorkspaces();
+      return nextWorkspaces.find((workspace) => workspace.id === workspaceId) ?? null;
+    } catch (error) {
+      if (!isSchemaError(error)) {
+        console.error("Failed to add workspace task in Supabase", error);
+      }
+    }
+  }
+
   const workspaces = getStoredWorkspaces();
   const workspace = workspaces.find((item) => item.id === workspaceId);
   if (!workspace) return null;
@@ -1123,6 +1459,22 @@ export const updateWorkspaceMilestone = async (
   milestoneId: string,
   status: "Todo" | "In Progress" | "Done",
 ): Promise<IdeaWorkspace | null> => {
+  if (isSupabaseConfigured) {
+    try {
+      const patch: TablesUpdate<"idea_workspace_milestones"> = { status };
+      const { error } = await supabase.from("idea_workspace_milestones").update(patch).eq("id", milestoneId);
+
+      if (error) throw error;
+
+      const nextWorkspaces = await fetchIdeaWorkspaces();
+      return nextWorkspaces.find((workspace) => workspace.id === workspaceId) ?? null;
+    } catch (error) {
+      if (!isSchemaError(error)) {
+        console.error("Failed to update workspace milestone in Supabase", error);
+      }
+    }
+  }
+
   const workspaces = getStoredWorkspaces();
   const workspace = workspaces.find((item) => item.id === workspaceId);
   if (!workspace) return null;
@@ -1144,6 +1496,27 @@ export const convertWorkspaceToProject = async (
 ): Promise<IdeaWorkspace | null> => {
   const trimmed = projectTitle.trim();
   if (!trimmed) return null;
+
+  if (isSupabaseConfigured) {
+    try {
+      const patch: TablesUpdate<"idea_workspaces"> = {
+        is_converted: true,
+        project_title: trimmed,
+        converted_at: new Date().toISOString(),
+        launch_status: "Private Beta",
+      };
+
+      const { error } = await supabase.from("idea_workspaces").update(patch).eq("id", workspaceId);
+      if (error) throw error;
+
+      const nextWorkspaces = await fetchIdeaWorkspaces();
+      return nextWorkspaces.find((workspace) => workspace.id === workspaceId) ?? null;
+    } catch (error) {
+      if (!isSchemaError(error)) {
+        console.error("Failed to convert workspace in Supabase", error);
+      }
+    }
+  }
 
   const workspaces = getStoredWorkspaces();
   const workspace = workspaces.find((item) => item.id === workspaceId);
