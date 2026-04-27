@@ -52,6 +52,7 @@ const CollaborationPage = () => {
     queryKey: ["idea-workspaces"],
     queryFn: fetchIdeaWorkspaces,
   });
+  const allIdeas = ideasQuery.data ?? [];
 
   useEffect(() => {
     setWorkspaces(workspacesQuery.data ?? []);
@@ -76,10 +77,10 @@ const CollaborationPage = () => {
 
   const collaborationIdeas = useMemo(
     () =>
-      (ideasQuery.data ?? []).filter(
+      allIdeas.filter(
         (idea) => idea.startupMode || idea.stage === "Building" || idea.stage === "Validation",
       ),
-    [ideasQuery.data],
+    [allIdeas],
   );
 
   const selectedWorkspace = workspaces.find((workspace) => workspace.id === selectedWorkspaceId) ?? null;
@@ -100,7 +101,7 @@ const CollaborationPage = () => {
   );
   const isLoading = ideasQuery.isLoading || workspacesQuery.isLoading;
   const hasLaunchpadIdeas = collaborationIdeas.length > 0;
-  const requestedIdea = collaborationIdeas.find((idea) => idea.id === requestedIdeaId) ?? null;
+  const requestedIdea = allIdeas.find((idea) => idea.id === requestedIdeaId) ?? null;
   const requestedWorkspace = requestedWorkspaceId
     ? workspaces.find((workspace) => workspace.id === requestedWorkspaceId) ?? null
     : requestedIdeaId
@@ -137,7 +138,7 @@ const CollaborationPage = () => {
       return;
     }
 
-    const idea = collaborationIdeas.find((item) => item.id === ideaId);
+    const idea = allIdeas.find((item) => item.id === ideaId);
     if (!idea) {
       toast.error("That idea could not be found.");
       return;
