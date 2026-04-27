@@ -95,6 +95,8 @@ const CollaborationPage = () => {
     () => getOpportunityMatches(collaborationIdeas, workspaces, selectedRole, followedCategories).slice(0, 4),
     [collaborationIdeas, selectedRole, workspaces, followedCategories],
   );
+  const isLoading = ideasQuery.isLoading || workspacesQuery.isLoading;
+  const hasLaunchpadIdeas = collaborationIdeas.length > 0;
 
   const refreshWorkspaces = async () => {
     const nextWorkspaces = await fetchIdeaWorkspaces();
@@ -254,6 +256,12 @@ const CollaborationPage = () => {
 
         <section className="mt-10 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
           <div className="space-y-6">
+            {isLoading ? (
+              <div className="rounded-[1.6rem] border border-dashed border-border bg-card/70 p-5 text-sm leading-7 text-muted-foreground shadow-card">
+                StudentHub is loading your ideas, workspaces, and collaboration signals.
+              </div>
+            ) : null}
+
             <div className="rounded-[1.8rem] border border-border bg-card p-6 shadow-card">
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -342,6 +350,11 @@ const CollaborationPage = () => {
                     </div>
                   );
                 })}
+                {!opportunityMatches.length ? (
+                  <div className="rounded-[1.4rem] border border-dashed border-border bg-background/75 p-4 text-sm leading-7 text-muted-foreground">
+                    Follow categories in Idea Hub or switch your role focus to unlock more tailored collaboration matches.
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -442,6 +455,11 @@ const CollaborationPage = () => {
                     </div>
                   );
                 })}
+                {!hasLaunchpadIdeas ? (
+                  <div className="rounded-[1.4rem] border border-dashed border-border bg-background/75 p-5 text-sm leading-7 text-muted-foreground">
+                    There are no active validation or building ideas yet. Post or promote ideas in Idea Hub to unlock new workspaces here.
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
@@ -495,7 +513,7 @@ const CollaborationPage = () => {
                     <div className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
                       <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Contribution leaders</p>
                       <p className="mt-2 text-sm font-semibold text-foreground">
-                        {contributionBoard.length ? contributionBoard[0].displayName : "No activity yet"}
+                        {contributionBoard.length ? contributionBoard[0].displayName : "Team activity is just starting"}
                       </p>
                     </div>
                   </div>
@@ -672,15 +690,21 @@ const CollaborationPage = () => {
                         Workspace chat
                       </div>
                       <div className="mt-4 space-y-3">
-                        {selectedWorkspace.messages.slice(0, 5).map((message) => (
-                          <div key={message.id} className="rounded-2xl bg-background/80 p-4">
-                            <div className="flex items-center justify-between gap-3">
-                              <p className="text-sm font-semibold text-foreground">{message.displayName}</p>
-                              <p className="text-xs text-muted-foreground">{message.role}</p>
+                        {selectedWorkspace.messages.length ? (
+                          selectedWorkspace.messages.slice(0, 5).map((message) => (
+                            <div key={message.id} className="rounded-2xl bg-background/80 p-4">
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="text-sm font-semibold text-foreground">{message.displayName}</p>
+                                <p className="text-xs text-muted-foreground">{message.role}</p>
+                              </div>
+                              <p className="mt-3 text-sm leading-7 text-muted-foreground">{message.content}</p>
                             </div>
-                            <p className="mt-3 text-sm leading-7 text-muted-foreground">{message.content}</p>
+                          ))
+                        ) : (
+                          <div className="rounded-2xl border border-dashed border-border bg-background/70 p-4 text-sm text-muted-foreground">
+                            No updates yet. Start the conversation with a sprint goal, blocker, or launch decision.
                           </div>
-                        ))}
+                        )}
                       </div>
                       <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                         <Textarea
@@ -703,15 +727,21 @@ const CollaborationPage = () => {
                         Task board
                       </div>
                       <div className="mt-4 space-y-3">
-                        {selectedWorkspace.tasks.map((task) => (
-                          <div key={task.id} className="rounded-2xl bg-background/80 p-4">
-                            <div className="flex items-center justify-between gap-3">
-                              <p className="text-sm font-semibold text-foreground">{task.title}</p>
-                              <Badge variant="secondary" className="rounded-full">{task.status}</Badge>
+                        {selectedWorkspace.tasks.length ? (
+                          selectedWorkspace.tasks.map((task) => (
+                            <div key={task.id} className="rounded-2xl bg-background/80 p-4">
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="text-sm font-semibold text-foreground">{task.title}</p>
+                                <Badge variant="secondary" className="rounded-full">{task.status}</Badge>
+                              </div>
+                              <p className="mt-2 text-xs text-muted-foreground">Suggested owner: {task.ownerRole}</p>
                             </div>
-                            <p className="mt-2 text-xs text-muted-foreground">Suggested owner: {task.ownerRole}</p>
+                          ))
+                        ) : (
+                          <div className="rounded-2xl border border-dashed border-border bg-background/70 p-4 text-sm text-muted-foreground">
+                            No sprint tasks yet. Add the next concrete deliverable so the team can move faster.
                           </div>
-                        ))}
+                        )}
                       </div>
                       <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                         <Input
@@ -732,14 +762,20 @@ const CollaborationPage = () => {
                         Execution milestones
                       </div>
                       <div className="mt-4 space-y-3">
-                        {selectedWorkspace.milestones.map((milestone) => (
-                          <div key={milestone} className="rounded-2xl border border-border/70 bg-background/80 px-4 py-3 text-sm text-foreground">
-                            {milestone}
+                        {selectedWorkspace.milestones.length ? (
+                          selectedWorkspace.milestones.map((milestone) => (
+                            <div key={milestone} className="rounded-2xl border border-border/70 bg-background/80 px-4 py-3 text-sm text-foreground">
+                              {milestone}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="rounded-2xl border border-dashed border-border bg-background/70 p-4 text-sm text-muted-foreground">
+                            Add milestone structure to guide the team from validation into launch.
                           </div>
-                        ))}
+                        )}
                       </div>
                       <div className="mt-4 rounded-2xl border border-dashed border-border bg-background/70 p-4 text-sm leading-7 text-muted-foreground">
-                        Phase 5 can now build on this with milestone state, assignee ownership, and idea-to-project conversion logic.
+                        These milestones now anchor the real execution path from idea validation to a launch-ready project.
                       </div>
                     </div>
                   </div>
@@ -770,11 +806,11 @@ const CollaborationPage = () => {
               ) : (
                 <div className="mt-6 rounded-[1.5rem] border border-dashed border-border bg-secondary/40 p-6">
                   <p className="text-sm leading-7 text-muted-foreground">
-                    Create the first workspace from an active idea on the left to unlock team formation, role slots,
-                    chat, task tracking, and Phase 4 matching insights.
+                    Choose an active idea from the launchpad to create or open a workspace. Once a workspace exists,
+                    you can coordinate roles, track milestones, manage tasks, and prepare the project for launch.
                   </p>
                   <Button className="mt-4 rounded-xl" asChild>
-                    <Link to="/ideas">Return to Idea Hub</Link>
+                    <Link to="/ideas">{hasLaunchpadIdeas ? "Explore more ideas" : "Go to Idea Hub"}</Link>
                   </Button>
                 </div>
               )}
