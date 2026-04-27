@@ -13,6 +13,7 @@ import { isSupabaseConfigured } from "@/lib/marketplace";
 const IDEAS_STORAGE_KEY = "studenthub.ideaHub.ideas";
 const INTERACTIONS_STORAGE_KEY = "studenthub.ideaHub.interactions";
 const COMMENTS_STORAGE_KEY = "studenthub.ideaHub.comments";
+const FOLLOWING_STORAGE_KEY = "studenthub.ideaHub.following";
 
 type IdeaRow = Tables<"ideas">;
 type ProfileRow = Tables<"profiles">;
@@ -51,6 +52,19 @@ export interface IdeaContributionSummary {
   totalVotes: number;
   totalJoinRequests: number;
   authoredIdeas: IdeaItem[];
+}
+
+export interface IdeaFollowingState {
+  ideaIds: string[];
+  categories: string[];
+}
+
+export interface IdeaHubActivitySnapshot {
+  followedIdeas: number;
+  followedCategories: number;
+  votesCast: number;
+  collaborationRequests: number;
+  authoredIdeas: number;
 }
 
 export interface IdeaComment {
@@ -134,6 +148,14 @@ const saveStoredInteractions = (interactions: IdeaInteractionMap) => writeJson(I
 const getStoredComments = () => readJson<Record<string, IdeaComment[]>>(COMMENTS_STORAGE_KEY, {});
 
 const saveStoredComments = (comments: Record<string, IdeaComment[]>) => writeJson(COMMENTS_STORAGE_KEY, comments);
+
+const getStoredFollowing = () =>
+  readJson<IdeaFollowingState>(FOLLOWING_STORAGE_KEY, {
+    ideaIds: [],
+    categories: [],
+  });
+
+const saveStoredFollowing = (following: IdeaFollowingState) => writeJson(FOLLOWING_STORAGE_KEY, following);
 
 const withInteractionState = (idea: IdeaItem, interactions: IdeaInteractionMap): IdeaItem => {
   const state = interactions[idea.id];
@@ -503,6 +525,55 @@ export const requestIdeaCollaboration = async (
 };
 
 export const getCurrentIdeaInteraction = (ideaId: string) => getStoredInteractions()[ideaId] ?? null;
+
+export const getIdeaFollowingState = () => getStoredFollowing();
+
+export const toggleFollowedIdea = (ideaId: string) => {
+  const following = getStoredFollowing();
+  const alreadyFollowing = following.ideaIds.includes(ideaId);
+  const ideaIds = alreadyFollowing
+    ? following.ideaIds.filter((id) => id !== ideaId)
+    : [ideaId, ...following.ideaIds];
+
+  const nextState = { ...following, ideaIds };
+  saveStoredFollowing(nextState);
+  return {
+    following: !alreadyFollowing,
+    state: nextState,
+  };
+};
+
+export const toggleFollowedCategory = (category: string) => {
+  const following = getStoredFollowing();
+  const alreadyFollowing = following.categories.includes(category);
+  const categories = alreadyFollowing
+    ? following.categories.filter((item) => item !== category)
+    : [category, ...following.categories];
+
+  const nextState = { ...following, categories };
+  saveStoredFollowing(nextState);
+  return {
+    following: !alreadyFollowing,
+    state: nextState,
+  };
+};
+
+export const getIdeaHubActivitySnapshot = (
+  userId: string | undefined,
+  feed: IdeaItem[],
+): IdeaHubActivitySnapshot => {
+  const following = getStoredFollowing();
+  const interactions = getStoredInteractions();
+  const interactionValues = Object.values(interactions);
+
+  return {
+    followedIdeas: following.ideaIds.length,
+    followedCategories: following.categories.length,
+    votesCast: interactionValues.filter((item) => item.voted).length,
+    collaborationRequests: interactionValues.filter((item) => item.joinedRole).length,
+    authoredIdeas: userId ? feed.filter((idea) => idea.authorUserId === userId).length : 0,
+  };
+};
 
 export const fetchIdeaContributionSummary = async (userId: string | undefined): Promise<IdeaContributionSummary> => {
   if (!userId) {

@@ -6,6 +6,7 @@ import {
   BarChart3,
   Bot,
   BriefcaseBusiness,
+  BellRing,
   Filter,
   Flame,
   Globe2,
@@ -15,6 +16,7 @@ import {
   Rocket,
   Search,
   Sparkles,
+  Star,
   ThumbsUp,
   Users2,
 } from "lucide-react";
@@ -38,10 +40,15 @@ import {
   createIdeaDraft,
   fetchIdeaComments,
   fetchIdeaHubFeed,
+  getIdeaFollowingState,
+  getIdeaHubActivitySnapshot,
   getCurrentIdeaInteraction,
   requestIdeaCollaboration,
+  toggleFollowedCategory,
+  toggleFollowedIdea,
   voteForIdea,
   type IdeaComment,
+  type IdeaFollowingState,
 } from "@/lib/ideaHub";
 import { toast } from "sonner";
 
@@ -84,6 +91,7 @@ const IdeaHub = () => {
   const [joinRole, setJoinRole] = useState<Record<string, CollaborationRole>>({});
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [commentsByIdea, setCommentsByIdea] = useState<Record<string, IdeaComment[]>>({});
+  const [followingState, setFollowingState] = useState<IdeaFollowingState>(() => getIdeaFollowingState());
 
   const { data, isLoading } = useQuery({
     queryKey: ["idea-hub"],
@@ -134,6 +142,22 @@ const IdeaHub = () => {
   const recommendedIdeas = [...ideas]
     .sort((a, b) => b.votes + b.joinRequests - (a.votes + a.joinRequests))
     .slice(0, 2);
+  const activitySnapshot = useMemo(() => getIdeaHubActivitySnapshot(user?.id, ideas), [ideas, user?.id]);
+  const opportunityFeed = useMemo(() => {
+    const followedCategories = new Set(followingState.categories);
+    const followedIdeaIds = new Set(followingState.ideaIds);
+
+    return ideas
+      .filter((idea) => {
+        const interaction = getCurrentIdeaInteraction(idea.id);
+        const matchesCategory = followedCategories.size ? followedCategories.has(idea.category) : false;
+        const matchesIdea = followedIdeaIds.has(idea.id);
+        const stillOpenToYou = !interaction?.joinedRole;
+        return (matchesCategory || matchesIdea) && stillOpenToYou;
+      })
+      .sort((a, b) => b.trendScore - a.trendScore)
+      .slice(0, 3);
+  }, [followingState.categories, followingState.ideaIds, ideas]);
 
   const userCreatedIdeas = user ? ideas.filter((idea) => idea.authorUserId === user.id) : [];
 
@@ -157,6 +181,18 @@ const IdeaHub = () => {
         ? current.rolesNeeded.filter((item) => item !== role)
         : [...current.rolesNeeded, role],
     }));
+  };
+
+  const handleFollowIdea = (ideaId: string) => {
+    const result = toggleFollowedIdea(ideaId);
+    setFollowingState(result.state);
+    toast.success(result.following ? "Idea added to your watchlist." : "Idea removed from your watchlist.");
+  };
+
+  const handleFollowCategory = (category: string) => {
+    const result = toggleFollowedCategory(category);
+    setFollowingState(result.state);
+    toast.success(result.following ? `${category} added to your opportunity feed.` : `${category} removed from your opportunity feed.`);
   };
 
   const handlePostIdea = async () => {
@@ -544,6 +580,10 @@ const IdeaHub = () => {
                         <ThumbsUp className="mr-2 h-4 w-4" />
                         {interaction?.voted ? "Voted" : "Upvote"}
                       </Button>
+                      <Button variant="outline" className="rounded-xl" onClick={() => handleFollowIdea(idea.id)}>
+                        <Star className={`mr-2 h-4 w-4 ${followingState.ideaIds.includes(idea.id) ? "fill-current" : ""}`} />
+                        {followingState.ideaIds.includes(idea.id) ? "Following" : "Follow idea"}
+                      </Button>
                       <Button className="rounded-xl">
                         Convert to project
                         <ArrowRight className="ml-2 h-4 w-4" />
@@ -632,6 +672,72 @@ const IdeaHub = () => {
                     </p>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            <div className="glass-panel rounded-[1.8rem] border border-white/70 p-6 shadow-card">
+              <div className="flex items-center gap-3">
+                <BellRing className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Your activity</p>
+                  <h3 className="font-display text-2xl font-bold text-foreground">Engagement snapshot</h3>
+                </div>
+              </div>
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <div className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Following ideas</p>
+                  <p className="mt-2 text-2xl font-bold text-foreground">{activitySnapshot.followedIdeas}</p>
+                </div>
+                <div className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Following categories</p>
+                  <p className="mt-2 text-2xl font-bold text-foreground">{activitySnapshot.followedCategories}</p>
+                </div>
+                <div className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Votes cast</p>
+                  <p className="mt-2 text-2xl font-bold text-foreground">{activitySnapshot.votesCast}</p>
+                </div>
+                <div className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Join requests</p>
+                  <p className="mt-2 text-2xl font-bold text-foreground">{activitySnapshot.collaborationRequests}</p>
+                </div>
+              </div>
+              <div className="mt-4 rounded-[1.3rem] border border-dashed border-border/70 bg-background/60 p-4 text-sm leading-7 text-muted-foreground">
+                {activitySnapshot.authoredIdeas > 0
+                  ? `You have already published ${activitySnapshot.authoredIdeas} idea${activitySnapshot.authoredIdeas === 1 ? "" : "s"}. Keep building momentum by following related categories and joining teams.`
+                  : "Start by following a few categories or ideas so StudentHub can surface stronger opportunities for you."}
+              </div>
+            </div>
+
+            <div className="glass-panel rounded-[1.8rem] border border-white/70 p-6 shadow-card">
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-5 w-5 text-accent" />
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-accent">Opportunity feed</p>
+                  <h3 className="font-display text-2xl font-bold text-foreground">Ideas worth acting on next</h3>
+                </div>
+              </div>
+              <div className="mt-5 space-y-4">
+                {opportunityFeed.length ? (
+                  opportunityFeed.map((idea) => (
+                    <div key={idea.id} className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{idea.title}</p>
+                          <p className="mt-2 text-xs leading-6 text-muted-foreground">
+                            {idea.category} • {idea.stage} • roles needed: {idea.rolesNeeded.join(", ")}
+                          </p>
+                        </div>
+                        <Badge variant="secondary" className="rounded-full">
+                          {idea.interestLevel}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-[1.3rem] border border-dashed border-border/70 bg-background/75 p-4 text-sm leading-7 text-muted-foreground">
+                    Follow categories like AI, Research, or Design and StudentHub will start building a more personal opportunity feed here.
+                  </div>
+                )}
               </div>
             </div>
 
@@ -822,14 +928,29 @@ const IdeaHub = () => {
               </div>
               <div className="flex flex-wrap gap-2">
                 {["All", ...ideaCategories].map((category) => (
-                  <Badge
-                    key={category}
-                    variant={activeCategory === category ? "default" : "secondary"}
-                    className="cursor-pointer rounded-full px-4 py-2 text-xs"
-                    onClick={() => setActiveCategory(category)}
-                  >
-                    {category}
-                  </Badge>
+                  <div key={category} className="flex items-center gap-2">
+                    <Badge
+                      variant={activeCategory === category ? "default" : "secondary"}
+                      className="cursor-pointer rounded-full px-4 py-2 text-xs"
+                      onClick={() => setActiveCategory(category)}
+                    >
+                      {category}
+                    </Badge>
+                    {category !== "All" ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 rounded-full px-3"
+                        onClick={() => handleFollowCategory(category)}
+                      >
+                        <Star
+                          className={`mr-1 h-3.5 w-3.5 ${followingState.categories.includes(category) ? "fill-current" : ""}`}
+                        />
+                        {followingState.categories.includes(category) ? "Following" : "Follow"}
+                      </Button>
+                    ) : null}
+                  </div>
                 ))}
               </div>
             </div>
