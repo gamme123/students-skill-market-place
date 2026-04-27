@@ -306,10 +306,27 @@ const CollaborationPage = () => {
                   </div>
                   <div className="flex flex-wrap gap-3">
                     <Badge variant="secondary" className="rounded-full">{requestedIdea.stage}</Badge>
-                    <Button className="rounded-xl" onClick={() => void handleOpenRequestedWorkspace()}>
-                      {requestedWorkspace ? "Open workspace" : "Create workspace"}
-                    </Button>
+                    {currentMember ? (
+                      <Button className="rounded-xl" onClick={() => void handleOpenRequestedWorkspace()}>
+                        {requestedWorkspace ? "Open workspace" : "Create workspace"}
+                      </Button>
+                    ) : (
+                      <Button className="rounded-xl" asChild>
+                        <Link to="/auth">Sign in to collaborate</Link>
+                      </Button>
+                    )}
                   </div>
+                </div>
+              </div>
+            ) : null}
+
+            {!currentMember ? (
+              <div className="rounded-[1.6rem] border border-dashed border-border bg-card/70 p-5 text-sm leading-7 text-muted-foreground shadow-card">
+                Collaboration works best when you are signed in. Sign in to create workspaces, join teams, send updates, and convert ideas into projects.
+                <div className="mt-4">
+                  <Button className="rounded-xl" asChild>
+                    <Link to="/auth">Sign in now</Link>
+                  </Button>
                 </div>
               </div>
             ) : null}
@@ -493,15 +510,30 @@ const CollaborationPage = () => {
                             <Button variant="outline" className="rounded-xl" onClick={() => setSelectedWorkspaceId(workspace.id)}>
                               Open workspace
                             </Button>
-                            <Button className="rounded-xl" onClick={() => handleJoinWorkspace(workspace.id)}>
-                              Join as {selectedRole}
-                            </Button>
+                            {currentMember ? (
+                              <Button className="rounded-xl" onClick={() => handleJoinWorkspace(workspace.id)}>
+                                Join as {selectedRole}
+                              </Button>
+                            ) : (
+                              <Button className="rounded-xl" asChild>
+                                <Link to="/auth">Sign in to join</Link>
+                              </Button>
+                            )}
                           </>
                         ) : (
-                          <Button className="rounded-xl" onClick={() => handleCreateWorkspace(idea.id)}>
-                            Create workspace
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                          </Button>
+                          currentMember ? (
+                            <Button className="rounded-xl" onClick={() => handleCreateWorkspace(idea.id)}>
+                              Create workspace
+                              <ArrowRight className="ml-2 h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <Button className="rounded-xl" asChild>
+                              <Link to="/auth">
+                                Sign in to create
+                                <ArrowRight className="ml-2 h-4 w-4" />
+                              </Link>
+                            </Button>
+                          )
                         )}
                       </div>
                     </div>
