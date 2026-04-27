@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BarChart3, CheckCircle2, MessagesSquare, Rocket, Sparkles, Target, Trophy, Users2 } from "lucide-react";
 import Header from "@/components/Header";
@@ -35,6 +35,7 @@ import { toast } from "sonner";
 
 const CollaborationPage = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>("");
   const [draftMessage, setDraftMessage] = useState("");
   const [draftTask, setDraftTask] = useState("");
@@ -70,6 +71,8 @@ const CollaborationPage = () => {
     () => new Map(workspaces.map((workspace) => [workspace.ideaId, workspace])),
     [workspaces],
   );
+  const requestedWorkspaceId = searchParams.get("workspace") ?? "";
+  const requestedIdeaId = searchParams.get("idea") ?? "";
 
   const collaborationIdeas = useMemo(
     () =>
@@ -97,6 +100,23 @@ const CollaborationPage = () => {
   );
   const isLoading = ideasQuery.isLoading || workspacesQuery.isLoading;
   const hasLaunchpadIdeas = collaborationIdeas.length > 0;
+  const requestedIdea = collaborationIdeas.find((idea) => idea.id === requestedIdeaId) ?? null;
+  const requestedWorkspace = requestedWorkspaceId
+    ? workspaces.find((workspace) => workspace.id === requestedWorkspaceId) ?? null
+    : requestedIdeaId
+      ? workspaceMap.get(requestedIdeaId) ?? null
+      : null;
+
+  useEffect(() => {
+    if (requestedWorkspace?.id && requestedWorkspace.id !== selectedWorkspaceId) {
+      setSelectedWorkspaceId(requestedWorkspace.id);
+      return;
+    }
+
+    if (!selectedWorkspaceId && workspaces.length) {
+      setSelectedWorkspaceId(workspaces[0].id);
+    }
+  }, [requestedWorkspace?.id, selectedWorkspaceId, workspaces]);
 
   const refreshWorkspaces = async () => {
     const nextWorkspaces = await fetchIdeaWorkspaces();
@@ -127,6 +147,18 @@ const CollaborationPage = () => {
     await refreshWorkspaces();
     setSelectedWorkspaceId(nextWorkspace.id);
     toast.success("Team workspace created.");
+  };
+
+  const handleOpenRequestedWorkspace = async () => {
+    if (requestedWorkspace?.id) {
+      setSelectedWorkspaceId(requestedWorkspace.id);
+      toast.success("Opened the collaboration workspace for this idea.");
+      return;
+    }
+
+    if (requestedIdea) {
+      await handleCreateWorkspace(requestedIdea.id);
+    }
   };
 
   const handleJoinWorkspace = async (workspaceId: string) => {
@@ -259,6 +291,26 @@ const CollaborationPage = () => {
             {isLoading ? (
               <div className="rounded-[1.6rem] border border-dashed border-border bg-card/70 p-5 text-sm leading-7 text-muted-foreground shadow-card">
                 StudentHub is loading your ideas, workspaces, and collaboration signals.
+              </div>
+            ) : null}
+
+            {requestedIdea ? (
+              <div className="glass-panel rounded-[1.8rem] border border-white/70 p-6 shadow-card">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Idea handoff</p>
+                    <h2 className="font-display mt-3 text-2xl font-bold text-foreground">{requestedIdea.title}</h2>
+                    <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                      You came from Idea Hub for this concept. Open the active workspace or create one now to move from discovery into execution.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <Badge variant="secondary" className="rounded-full">{requestedIdea.stage}</Badge>
+                    <Button className="rounded-xl" onClick={() => void handleOpenRequestedWorkspace()}>
+                      {requestedWorkspace ? "Open workspace" : "Create workspace"}
+                    </Button>
+                  </div>
+                </div>
               </div>
             ) : null}
 

@@ -610,7 +610,7 @@ const IdeaHub = () => {
                         {followingState.ideaIds.includes(idea.id) ? "Following" : "Follow idea"}
                       </Button>
                       <Button className="rounded-xl" asChild>
-                        <Link to="/collaboration">
+                        <Link to={workspaceMap.get(idea.id) ? `/collaboration?workspace=${workspaceMap.get(idea.id)?.id}` : `/collaboration?idea=${idea.id}`}>
                           Convert to project
                           <ArrowRight className="ml-2 h-4 w-4" />
                         </Link>
