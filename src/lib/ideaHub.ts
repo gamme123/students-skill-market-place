@@ -15,6 +15,7 @@ const INTERACTIONS_STORAGE_KEY = "studenthub.ideaHub.interactions";
 const COMMENTS_STORAGE_KEY = "studenthub.ideaHub.comments";
 const FOLLOWING_STORAGE_KEY = "studenthub.ideaHub.following";
 const WORKSPACES_STORAGE_KEY = "studenthub.ideaHub.workspaces";
+const GLOBAL_PREFS_STORAGE_KEY = "studenthub.global.preferences";
 
 type IdeaRow = Tables<"ideas">;
 type ProfileRow = Tables<"profiles">;
@@ -147,6 +148,22 @@ export interface WorkspaceContributionSnapshot {
   summary: string;
 }
 
+export interface GlobalPlatformPreferences {
+  language: "English" | "Swahili" | "French";
+  currency: "USD" | "KES" | "EUR";
+  visibilityMode: "Student" | "Recruiter" | "Investor";
+  networkScope: "Global" | "Local";
+}
+
+export interface CompetitionTrack {
+  id: string;
+  title: string;
+  region: string;
+  reward: string;
+  deadline: string;
+  focus: string;
+}
+
 export interface IdeaComment {
   id: string;
   ideaId: string;
@@ -240,6 +257,16 @@ const saveStoredFollowing = (following: IdeaFollowingState) => writeJson(FOLLOWI
 const getStoredWorkspaces = () => readJson<IdeaWorkspace[]>(WORKSPACES_STORAGE_KEY, []);
 
 const saveStoredWorkspaces = (workspaces: IdeaWorkspace[]) => writeJson(WORKSPACES_STORAGE_KEY, workspaces);
+const getStoredGlobalPreferences = () =>
+  readJson<GlobalPlatformPreferences>(GLOBAL_PREFS_STORAGE_KEY, {
+    language: "English",
+    currency: "USD",
+    visibilityMode: "Student",
+    networkScope: "Global",
+  });
+
+const saveStoredGlobalPreferences = (preferences: GlobalPlatformPreferences) =>
+  writeJson(GLOBAL_PREFS_STORAGE_KEY, preferences);
 
 const defaultMilestoneRoles = (roles: CollaborationRole[]) => {
   const primary = roles[0] ?? "Developer";
@@ -247,6 +274,24 @@ const defaultMilestoneRoles = (roles: CollaborationRole[]) => {
   const third = roles[2] ?? secondary;
   return [primary, secondary, third];
 };
+
+const translatedSummaries = {
+  English: {
+    collaboration: "Build teams, assign roles, and move ideas into execution.",
+    investor: "Investor mode highlights the ideas with the clearest traction and launch signal.",
+    recruiter: "Recruiter mode surfaces teams with visible execution and portfolio momentum.",
+  },
+  Swahili: {
+    collaboration: "Jenga timu, gawa majukumu, na geuza mawazo kuwa utekelezaji halisi.",
+    investor: "Mwonekano wa wawekezaji unaangazia mawazo yenye mvuto na dalili wazi za uzinduzi.",
+    recruiter: "Mwonekano wa waajiri unaonyesha timu zenye utekelezaji unaoonekana na kasi ya wasifu wa kazi.",
+  },
+  French: {
+    collaboration: "Formez des equipes, attribuez des roles et transformez les idees en execution.",
+    investor: "Le mode investisseur met en avant les idees avec le meilleur signal de traction et de lancement.",
+    recruiter: "Le mode recruteur met en avant les equipes avec une execution visible et un portefeuille solide.",
+  },
+} as const;
 
 const withInteractionState = (idea: IdeaItem, interactions: IdeaInteractionMap): IdeaItem => {
   const state = interactions[idea.id];
@@ -1131,3 +1176,46 @@ export const getWorkspaceContributionSnapshot = (workspace: IdeaWorkspace | null
     }))
     .sort((a, b) => b.points - a.points);
 };
+
+export const getGlobalPlatformPreferences = () => getStoredGlobalPreferences();
+
+export const updateGlobalPlatformPreferences = (
+  patch: Partial<GlobalPlatformPreferences>,
+): GlobalPlatformPreferences => {
+  const nextPreferences = {
+    ...getStoredGlobalPreferences(),
+    ...patch,
+  };
+
+  saveStoredGlobalPreferences(nextPreferences);
+  return nextPreferences;
+};
+
+export const getLocalizedPlatformCopy = (language: GlobalPlatformPreferences["language"]) => translatedSummaries[language];
+
+export const getGlobalCompetitionTracks = (): CompetitionTrack[] => [
+  {
+    id: "comp-africa-ai",
+    title: "Africa AI Campus Sprint",
+    region: "Africa",
+    reward: "$3,000 launch grant",
+    deadline: "May 30",
+    focus: "AI and student productivity",
+  },
+  {
+    id: "comp-europe-climate",
+    title: "Europe Climate Builder Week",
+    region: "Europe",
+    reward: "Mentor access and investor showcase",
+    deadline: "June 12",
+    focus: "Climate and sustainability",
+  },
+  {
+    id: "comp-global-edtech",
+    title: "Global EdTech Demo Day",
+    region: "Global",
+    reward: "Recruiter visibility and demo slots",
+    deadline: "June 28",
+    focus: "Education and collaboration",
+  },
+];

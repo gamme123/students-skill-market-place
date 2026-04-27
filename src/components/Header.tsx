@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Search, Menu, X, LogOut, User, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { getGlobalPlatformPreferences, updateGlobalPlatformPreferences, type GlobalPlatformPreferences } from "@/lib/ideaHub";
 import { toast } from "sonner";
 
 const navItems = [
@@ -15,14 +16,27 @@ const navItems = [
 
 const Header = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [preferences, setPreferences] = useState<GlobalPlatformPreferences>(() => getGlobalPlatformPreferences());
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const displayName = user?.user_metadata?.display_name || user?.email?.split("@")[0] || "Profile";
+
+  useEffect(() => {
+    setPreferences(getGlobalPlatformPreferences());
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
     toast.success("Signed out");
     navigate("/");
+  };
+
+  const handlePreferenceChange = <K extends keyof GlobalPlatformPreferences>(
+    key: K,
+    value: GlobalPlatformPreferences[K],
+  ) => {
+    const next = updateGlobalPlatformPreferences({ [key]: value });
+    setPreferences(next);
   };
 
   return (
@@ -57,6 +71,35 @@ const Header = () => {
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
+          <select
+            className="h-9 rounded-xl border border-input bg-background px-3 text-sm"
+            value={preferences.language}
+            onChange={(event) => handlePreferenceChange("language", event.target.value as GlobalPlatformPreferences["language"])}
+          >
+            <option value="English">EN</option>
+            <option value="Swahili">SW</option>
+            <option value="French">FR</option>
+          </select>
+          <select
+            className="h-9 rounded-xl border border-input bg-background px-3 text-sm"
+            value={preferences.currency}
+            onChange={(event) => handlePreferenceChange("currency", event.target.value as GlobalPlatformPreferences["currency"])}
+          >
+            <option value="USD">USD</option>
+            <option value="KES">KES</option>
+            <option value="EUR">EUR</option>
+          </select>
+          <select
+            className="h-9 rounded-xl border border-input bg-background px-3 text-sm"
+            value={preferences.visibilityMode}
+            onChange={(event) =>
+              handlePreferenceChange("visibilityMode", event.target.value as GlobalPlatformPreferences["visibilityMode"])
+            }
+          >
+            <option value="Student">Student</option>
+            <option value="Recruiter">Recruiter</option>
+            <option value="Investor">Investor</option>
+          </select>
           <Button variant="ghost" size="icon" asChild>
             <Link to="/explore" aria-label="Search services">
               <Search className="h-4 w-4" />
@@ -109,6 +152,51 @@ const Header = () => {
                 {item.label}
               </Link>
             ))}
+
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <select
+                className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                value={preferences.language}
+                onChange={(event) => handlePreferenceChange("language", event.target.value as GlobalPlatformPreferences["language"])}
+              >
+                <option value="English">English</option>
+                <option value="Swahili">Swahili</option>
+                <option value="French">French</option>
+              </select>
+              <select
+                className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                value={preferences.currency}
+                onChange={(event) => handlePreferenceChange("currency", event.target.value as GlobalPlatformPreferences["currency"])}
+              >
+                <option value="USD">USD</option>
+                <option value="KES">KES</option>
+                <option value="EUR">EUR</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <select
+                className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                value={preferences.visibilityMode}
+                onChange={(event) =>
+                  handlePreferenceChange("visibilityMode", event.target.value as GlobalPlatformPreferences["visibilityMode"])
+                }
+              >
+                <option value="Student">Student</option>
+                <option value="Recruiter">Recruiter</option>
+                <option value="Investor">Investor</option>
+              </select>
+              <select
+                className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                value={preferences.networkScope}
+                onChange={(event) =>
+                  handlePreferenceChange("networkScope", event.target.value as GlobalPlatformPreferences["networkScope"])
+                }
+              >
+                <option value="Global">Global</option>
+                <option value="Local">Local</option>
+              </select>
+            </div>
 
             <div className="grid grid-cols-2 gap-2 pt-2">
               {user ? (

@@ -15,8 +15,11 @@ import {
   createIdeaWorkspace,
   fetchIdeaHubFeed,
   fetchIdeaWorkspaces,
+  getGlobalCompetitionTracks,
   getIdeaFollowingState,
   getIdeaIntelligenceScore,
+  getGlobalPlatformPreferences,
+  getLocalizedPlatformCopy,
   getOpportunityMatches,
   getWorkspaceContributionSnapshot,
   getWorkspaceHealth,
@@ -78,6 +81,9 @@ const CollaborationPage = () => {
   const selectedWorkspaceHealth = useMemo(() => getWorkspaceHealth(selectedWorkspace), [selectedWorkspace]);
   const contributionBoard = useMemo(() => getWorkspaceContributionSnapshot(selectedWorkspace), [selectedWorkspace]);
   const followedCategories = getIdeaFollowingState().categories;
+  const globalPreferences = getGlobalPlatformPreferences();
+  const localizedCopy = getLocalizedPlatformCopy(globalPreferences.language);
+  const competitionTracks = getGlobalCompetitionTracks();
   const opportunityMatches = useMemo(
     () => getOpportunityMatches(collaborationIdeas, workspaces, selectedRole, followedCategories).slice(0, 4),
     [collaborationIdeas, selectedRole, workspaces, followedCategories],
@@ -218,8 +224,7 @@ const CollaborationPage = () => {
                 Build teams, assign roles, and move ideas into execution.
               </h1>
               <p className="mt-4 max-w-2xl text-base leading-8 text-white/85">
-                Phase 4 makes StudentHub smarter. Workspaces now surface opportunity fit, team health, and execution
-                signals so students can spend time on the ideas with the strongest path to momentum.
+                {localizedCopy.collaboration}
               </p>
             </div>
 
@@ -248,7 +253,7 @@ const CollaborationPage = () => {
                   <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Role focus</p>
                   <h2 className="font-display mt-3 text-3xl font-bold text-foreground">Choose how you contribute</h2>
                 </div>
-                <Badge variant="secondary" className="rounded-full">Phase 4 intelligence</Badge>
+                <Badge variant="secondary" className="rounded-full">{globalPreferences.visibilityMode} mode</Badge>
               </div>
               <div className="mt-5 flex flex-wrap gap-2">
                 {collaborationRoles.map((role) => (
@@ -262,6 +267,41 @@ const CollaborationPage = () => {
                     {role}
                   </Button>
                 ))}
+              </div>
+            </div>
+
+            <div className="glass-panel rounded-[1.8rem] border border-white/70 p-6 shadow-card">
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Global settings</p>
+                  <h2 className="font-display text-2xl font-bold text-foreground">Scale view</h2>
+                </div>
+              </div>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl bg-background/80 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Language</p>
+                  <p className="mt-2 text-sm font-semibold text-foreground">{globalPreferences.language}</p>
+                </div>
+                <div className="rounded-2xl bg-background/80 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Currency</p>
+                  <p className="mt-2 text-sm font-semibold text-foreground">{globalPreferences.currency}</p>
+                </div>
+                <div className="rounded-2xl bg-background/80 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Visibility mode</p>
+                  <p className="mt-2 text-sm font-semibold text-foreground">{globalPreferences.visibilityMode}</p>
+                </div>
+                <div className="rounded-2xl bg-background/80 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Network scope</p>
+                  <p className="mt-2 text-sm font-semibold text-foreground">{globalPreferences.networkScope}</p>
+                </div>
+              </div>
+              <div className="mt-4 rounded-[1.3rem] border border-dashed border-border/70 bg-background/60 p-4 text-sm leading-7 text-muted-foreground">
+                {globalPreferences.visibilityMode === "Investor"
+                  ? localizedCopy.investor
+                  : globalPreferences.visibilityMode === "Recruiter"
+                    ? localizedCopy.recruiter
+                    : "Student mode keeps the platform centered on collaboration, execution, and peer discovery."}
               </div>
             </div>
 
@@ -295,6 +335,30 @@ const CollaborationPage = () => {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+            <div className="glass-panel rounded-[1.8rem] border border-white/70 p-6 shadow-card">
+              <div className="flex items-center gap-3">
+                <Trophy className="h-5 w-5 text-accent" />
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-accent">Global competitions</p>
+                  <h2 className="font-display text-2xl font-bold text-foreground">Hackathons and demo tracks</h2>
+                </div>
+              </div>
+              <div className="mt-5 space-y-4">
+                {competitionTracks.map((track) => (
+                  <div key={track.id} className="rounded-[1.4rem] border border-border/70 bg-background/75 p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{track.title}</p>
+                        <p className="mt-2 text-xs leading-6 text-muted-foreground">{track.region} • {track.focus}</p>
+                      </div>
+                      <Badge variant="secondary" className="rounded-full">{track.deadline}</Badge>
+                    </div>
+                    <p className="mt-3 text-xs leading-6 text-muted-foreground">Reward: {track.reward}</p>
+                  </div>
+                ))}
               </div>
             </div>
 

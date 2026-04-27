@@ -41,6 +41,8 @@ import {
   fetchIdeaComments,
   fetchIdeaHubFeed,
   fetchIdeaWorkspaces,
+  getGlobalCompetitionTracks,
+  getGlobalPlatformPreferences,
   getIdeaFollowingState,
   getIdeaHubActivitySnapshot,
   getCurrentIdeaInteraction,
@@ -105,6 +107,8 @@ const IdeaHub = () => {
   });
 
   const ideas = data ?? [];
+  const globalPreferences = getGlobalPlatformPreferences();
+  const competitionTracks = getGlobalCompetitionTracks();
   const workspaceMap = useMemo(
     () => new Map((workspacesQuery.data ?? []).map((workspace) => [workspace.ideaId, workspace])),
     [workspacesQuery.data],
@@ -722,6 +726,52 @@ const IdeaHub = () => {
                 {activitySnapshot.authoredIdeas > 0
                   ? `You have already published ${activitySnapshot.authoredIdeas} idea${activitySnapshot.authoredIdeas === 1 ? "" : "s"}. Keep building momentum by following related categories and joining teams.`
                   : "Start by following a few categories or ideas so StudentHub can surface stronger opportunities for you."}
+              </div>
+            </div>
+
+            <div className="glass-panel rounded-[1.8rem] border border-white/70 p-6 shadow-card">
+              <div className="flex items-center gap-3">
+                <Globe2 className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Global layer</p>
+                  <h3 className="font-display text-2xl font-bold text-foreground">International access mode</h3>
+                </div>
+              </div>
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <div className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Language</p>
+                  <p className="mt-2 text-sm font-semibold text-foreground">{globalPreferences.language}</p>
+                </div>
+                <div className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Currency</p>
+                  <p className="mt-2 text-sm font-semibold text-foreground">{globalPreferences.currency}</p>
+                </div>
+                <div className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Viewer mode</p>
+                  <p className="mt-2 text-sm font-semibold text-foreground">{globalPreferences.visibilityMode}</p>
+                </div>
+                <div className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Network scope</p>
+                  <p className="mt-2 text-sm font-semibold text-foreground">{globalPreferences.networkScope}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="glass-panel rounded-[1.8rem] border border-white/70 p-6 shadow-card">
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-5 w-5 text-accent" />
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-accent">Global challenges</p>
+                  <h3 className="font-display text-2xl font-bold text-foreground">Hackathons and visibility tracks</h3>
+                </div>
+              </div>
+              <div className="mt-5 space-y-4">
+                {competitionTracks.slice(0, 2).map((track) => (
+                  <div key={track.id} className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
+                    <p className="text-sm font-semibold text-foreground">{track.title}</p>
+                    <p className="mt-2 text-xs leading-6 text-muted-foreground">{track.region} • {track.reward}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
