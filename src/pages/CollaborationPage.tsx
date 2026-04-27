@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, CheckCircle2, MessagesSquare, Rocket, Sparkles, Users2 } from "lucide-react";
+import { ArrowRight, BarChart3, CheckCircle2, MessagesSquare, Rocket, Sparkles, Target, Users2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,10 @@ import {
   createIdeaWorkspace,
   fetchIdeaHubFeed,
   fetchIdeaWorkspaces,
+  getIdeaFollowingState,
+  getIdeaIntelligenceScore,
+  getOpportunityMatches,
+  getWorkspaceHealth,
   joinIdeaWorkspace,
   sendWorkspaceMessage,
   type IdeaWorkspace,
@@ -63,6 +67,12 @@ const CollaborationPage = () => {
   );
 
   const selectedWorkspace = workspaces.find((workspace) => workspace.id === selectedWorkspaceId) ?? null;
+  const selectedWorkspaceHealth = useMemo(() => getWorkspaceHealth(selectedWorkspace), [selectedWorkspace]);
+  const followedCategories = getIdeaFollowingState().categories;
+  const opportunityMatches = useMemo(
+    () => getOpportunityMatches(collaborationIdeas, workspaces, selectedRole, followedCategories).slice(0, 4),
+    [collaborationIdeas, selectedRole, workspaces, followedCategories],
+  );
 
   const refreshWorkspaces = async () => {
     const nextWorkspaces = await fetchIdeaWorkspaces();
@@ -162,23 +172,23 @@ const CollaborationPage = () => {
                 Build teams, assign roles, and move ideas into execution.
               </h1>
               <p className="mt-4 max-w-2xl text-base leading-8 text-white/85">
-                Phase 3 turns StudentHub into a working environment. Idea teams can now open a workspace, claim roles,
-                coordinate through a lightweight chat, and start tracking real execution tasks.
+                Phase 4 makes StudentHub smarter. Workspaces now surface opportunity fit, team health, and execution
+                signals so students can spend time on the ideas with the strongest path to momentum.
               </p>
             </div>
 
             <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-1">
               <div className="glass-panel rounded-[1.5rem] border border-white/70 p-5 text-foreground shadow-card">
-                <p className="text-sm font-semibold">Team formation</p>
-                <p className="mt-2 text-xs text-muted-foreground">Create a workspace from any promising idea and invite the right mix of builders.</p>
+                <p className="text-sm font-semibold">Opportunity ranking</p>
+                <p className="mt-2 text-xs text-muted-foreground">Ideas are now prioritized by fit, traction, and execution readiness.</p>
               </div>
               <div className="glass-panel rounded-[1.5rem] border border-white/70 p-5 text-foreground shadow-card">
-                <p className="text-sm font-semibold">Role assignment</p>
-                <p className="mt-2 text-xs text-muted-foreground">Developers, designers, researchers, strategists, and writers can slot into visible roles.</p>
+                <p className="text-sm font-semibold">Workspace health</p>
+                <p className="mt-2 text-xs text-muted-foreground">See team strength, communication momentum, and missing roles at a glance.</p>
               </div>
               <div className="glass-panel rounded-[1.5rem] border border-white/70 p-5 text-foreground shadow-card">
-                <p className="text-sm font-semibold">Shared execution</p>
-                <p className="mt-2 text-xs text-muted-foreground">Use lightweight messaging and task tracking to start the first sprint fast.</p>
+                <p className="text-sm font-semibold">Smarter matching</p>
+                <p className="mt-2 text-xs text-muted-foreground">Selected role and followed categories now influence what StudentHub recommends.</p>
               </div>
             </div>
           </div>
@@ -192,7 +202,7 @@ const CollaborationPage = () => {
                   <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Role focus</p>
                   <h2 className="font-display mt-3 text-3xl font-bold text-foreground">Choose how you contribute</h2>
                 </div>
-                <Badge variant="secondary" className="rounded-full">Phase 3 MVP</Badge>
+                <Badge variant="secondary" className="rounded-full">Phase 4 intelligence</Badge>
               </div>
               <div className="mt-5 flex flex-wrap gap-2">
                 {collaborationRoles.map((role) => (
@@ -211,6 +221,39 @@ const CollaborationPage = () => {
 
             <div className="glass-panel rounded-[1.8rem] border border-white/70 p-6 shadow-card">
               <div className="flex items-center gap-3">
+                <Target className="h-5 w-5 text-accent" />
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-accent">Smart matching</p>
+                  <h2 className="font-display text-2xl font-bold text-foreground">Best opportunities for your role</h2>
+                </div>
+              </div>
+              <div className="mt-5 space-y-4">
+                {opportunityMatches.map((match) => {
+                  const idea = collaborationIdeas.find((item) => item.id === match.ideaId);
+                  if (!idea) return null;
+
+                  return (
+                    <div key={match.ideaId} className="rounded-[1.4rem] border border-border/70 bg-background/75 p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{idea.title}</p>
+                          <p className="mt-2 text-xs leading-6 text-muted-foreground">{match.label} • {match.score}% match</p>
+                        </div>
+                        <Badge variant="secondary" className="rounded-full">{idea.stage}</Badge>
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        {match.reasons.map((reason) => (
+                          <p key={reason} className="text-xs leading-6 text-muted-foreground">{reason}</p>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="glass-panel rounded-[1.8rem] border border-white/70 p-6 shadow-card">
+              <div className="flex items-center gap-3">
                 <Rocket className="h-5 w-5 text-primary" />
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Workspace launchpad</p>
@@ -220,6 +263,9 @@ const CollaborationPage = () => {
               <div className="mt-5 space-y-4">
                 {collaborationIdeas.slice(0, 6).map((idea) => {
                   const workspace = workspaceMap.get(idea.id);
+                  const intelligenceScore = getIdeaIntelligenceScore(idea, workspace);
+                  const workspaceHealth = getWorkspaceHealth(workspace);
+
                   return (
                     <div key={idea.id} className="rounded-[1.4rem] border border-border/70 bg-background/75 p-4">
                       <div className="flex items-start justify-between gap-4">
@@ -230,6 +276,18 @@ const CollaborationPage = () => {
                           </p>
                         </div>
                         <Badge variant="secondary" className="rounded-full">{idea.interestLevel}</Badge>
+                      </div>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-2xl bg-background/80 p-4">
+                          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Idea intelligence</p>
+                          <p className="mt-2 text-2xl font-bold text-foreground">{intelligenceScore}/99</p>
+                        </div>
+                        <div className="rounded-2xl bg-background/80 p-4">
+                          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Workspace health</p>
+                          <p className="mt-2 text-2xl font-bold text-foreground">
+                            {workspace ? `${workspaceHealth.score}/100` : "Not started"}
+                          </p>
+                        </div>
                       </div>
                       <div className="mt-4 flex flex-wrap gap-2">
                         {workspace ? (
@@ -264,12 +322,14 @@ const CollaborationPage = () => {
                     {selectedWorkspace?.ideaTitle || "No workspace selected"}
                   </h2>
                 </div>
-                {selectedWorkspace ? <Badge className="rounded-full bg-emerald-600 text-white hover:bg-emerald-600">{selectedWorkspace.stage}</Badge> : null}
+                {selectedWorkspace ? (
+                  <Badge className="rounded-full bg-emerald-600 text-white hover:bg-emerald-600">{selectedWorkspace.stage}</Badge>
+                ) : null}
               </div>
 
               {selectedWorkspace ? (
                 <div className="mt-6 space-y-6">
-                  <div className="grid gap-4 md:grid-cols-3">
+                  <div className="grid gap-4 md:grid-cols-4">
                     <div className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
                       <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Members</p>
                       <p className="mt-2 text-2xl font-bold text-foreground">{selectedWorkspace.members.length}</p>
@@ -282,6 +342,46 @@ const CollaborationPage = () => {
                       <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Sprint tasks</p>
                       <p className="mt-2 text-2xl font-bold text-foreground">{selectedWorkspace.tasks.length}</p>
                     </div>
+                    <div className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Workspace health</p>
+                      <p className="mt-2 text-2xl font-bold text-foreground">{selectedWorkspaceHealth.score}/100</p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <Users2 className="h-4 w-4 text-primary" />
+                        Team strength
+                      </div>
+                      <p className="mt-3 text-2xl font-bold text-foreground">{selectedWorkspaceHealth.teamStrength}/100</p>
+                    </div>
+                    <div className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <Rocket className="h-4 w-4 text-accent" />
+                        Execution strength
+                      </div>
+                      <p className="mt-3 text-2xl font-bold text-foreground">{selectedWorkspaceHealth.executionStrength}/100</p>
+                    </div>
+                    <div className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                        <BarChart3 className="h-4 w-4 text-emerald-600" />
+                        Communication strength
+                      </div>
+                      <p className="mt-3 text-2xl font-bold text-foreground">{selectedWorkspaceHealth.communicationStrength}/100</p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-[1.4rem] border border-border/70 bg-background/75 p-4">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <Sparkles className="h-4 w-4 text-accent" />
+                      Smart guidance
+                    </div>
+                    <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                      {selectedWorkspaceHealth.missingRoles.length
+                        ? `This team is strongest if it fills these remaining roles next: ${selectedWorkspaceHealth.missingRoles.join(", ")}.`
+                        : "This workspace has all planned roles filled. The next leverage point is pushing more tasks toward done status."}
+                    </p>
                   </div>
 
                   <div className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
@@ -297,7 +397,10 @@ const CollaborationPage = () => {
                               <p className="text-sm font-semibold text-foreground">{member.displayName}</p>
                               <Badge variant="secondary" className="rounded-full">{member.role}</Badge>
                             </div>
-                            <p className="mt-1 text-xs text-muted-foreground">{member.title}{member.isLead ? " • Team lead" : ""}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {member.title}
+                              {member.isLead ? " • Team lead" : ""}
+                            </p>
                           </div>
                         ))}
                       </div>
@@ -379,7 +482,7 @@ const CollaborationPage = () => {
                         ))}
                       </div>
                       <div className="mt-4 rounded-2xl border border-dashed border-border bg-background/70 p-4 text-sm leading-7 text-muted-foreground">
-                        Next tomorrow-ready upgrade: real milestone state, assignee ownership, and multi-user shared chat through Supabase.
+                        Phase 5 can now build on this with milestone state, assignee ownership, and idea-to-project conversion logic.
                       </div>
                     </div>
                   </div>
@@ -387,7 +490,8 @@ const CollaborationPage = () => {
               ) : (
                 <div className="mt-6 rounded-[1.5rem] border border-dashed border-border bg-secondary/40 p-6">
                   <p className="text-sm leading-7 text-muted-foreground">
-                    Create the first workspace from an active idea on the left to unlock team formation, role slots, chat, and the basic sprint board.
+                    Create the first workspace from an active idea on the left to unlock team formation, role slots,
+                    chat, task tracking, and Phase 4 matching insights.
                   </p>
                   <Button className="mt-4 rounded-xl" asChild>
                     <Link to="/ideas">Return to Idea Hub</Link>

@@ -107,6 +107,21 @@ export interface IdeaWorkspace {
   createdAt: string;
 }
 
+export interface WorkspaceHealthSnapshot {
+  score: number;
+  teamStrength: number;
+  executionStrength: number;
+  communicationStrength: number;
+  missingRoles: CollaborationRole[];
+}
+
+export interface OpportunityMatch {
+  ideaId: string;
+  score: number;
+  label: string;
+  reasons: string[];
+}
+
 export interface IdeaComment {
   id: string;
   ideaId: string;
@@ -730,6 +745,84 @@ export const createIdeaComment = async (
 };
 
 export const fetchIdeaWorkspaces = async (): Promise<IdeaWorkspace[]> => getStoredWorkspaces();
+
+export const getWorkspaceHealth = (workspace: IdeaWorkspace | null | undefined): WorkspaceHealthSnapshot => {
+  if (!workspace) {
+    return {
+      score: 0,
+      teamStrength: 0,
+      executionStrength: 0,
+      communicationStrength: 0,
+      missingRoles: [],
+    };
+  }
+
+  const teamStrength = Math.min(100, workspace.members.length * 22 + (workspace.openRoles.length === 0 ? 16 : 0));
+  const executionStrength = Math.min(
+    100,
+    workspace.tasks.filter((task) => task.status === "Done").length * 24 +
+      workspace.tasks.filter((task) => task.status === "In Progress").length * 14 +
+      workspace.milestones.length * 6,
+  );
+  const communicationStrength = Math.min(100, workspace.messages.length * 12);
+
+  const score = Math.round(teamStrength * 0.45 + executionStrength * 0.35 + communicationStrength * 0.2);
+
+  return {
+    score,
+    teamStrength,
+    executionStrength,
+    communicationStrength,
+    missingRoles: workspace.openRoles,
+  };
+};
+
+export const getIdeaIntelligenceScore = (idea: IdeaItem, workspace?: IdeaWorkspace | null) => {
+  const marketSignal = Math.min(100, idea.votes * 0.28 + idea.joinRequests * 4 + idea.comments * 1.5);
+  const workspaceHealth = getWorkspaceHealth(workspace);
+  const executionSignal = workspace ? workspaceHealth.score : idea.stage === "Building" ? 42 : idea.stage === "Validation" ? 28 : 16;
+  const categoryMomentum = idea.category === "AI" || idea.category === "EdTech" ? 8 : 4;
+
+  return Math.min(99, Math.round(marketSignal * 0.52 + executionSignal * 0.4 + categoryMomentum));
+};
+
+export const getOpportunityMatches = (
+  ideas: IdeaItem[],
+  workspaces: IdeaWorkspace[],
+  preferredRole: CollaborationRole,
+  followedCategories: string[] = [],
+): OpportunityMatch[] => {
+  const workspaceMap = new Map(workspaces.map((workspace) => [workspace.ideaId, workspace]));
+
+  return ideas
+    .map((idea) => {
+      const workspace = workspaceMap.get(idea.id);
+      const intelligenceScore = getIdeaIntelligenceScore(idea, workspace);
+      const roleMatch = idea.rolesNeeded.includes(preferredRole) || workspace?.openRoles.includes(preferredRole);
+      const categoryAffinity = followedCategories.includes(idea.category);
+      const earlyStageBonus = idea.stage === "Validation" || idea.stage === "Building" ? 10 : 0;
+      const roleBonus = roleMatch ? 18 : 0;
+      const categoryBonus = categoryAffinity ? 8 : 0;
+      const workspaceBonus = workspace ? Math.round(getWorkspaceHealth(workspace).score * 0.18) : 0;
+      const score = Math.min(99, intelligenceScore + roleBonus + categoryBonus + earlyStageBonus + workspaceBonus);
+
+      const reasons = [
+        roleMatch ? `${preferredRole} is needed here` : `Team fit is broader than ${preferredRole.toLowerCase()}`,
+        workspace
+          ? `${workspace.members.length} member${workspace.members.length === 1 ? "" : "s"} already executing`
+          : "Still open for first workspace formation",
+        categoryAffinity ? `Aligned with your followed ${idea.category} interest` : `${idea.category} has active momentum`,
+      ];
+
+      return {
+        ideaId: idea.id,
+        score,
+        label: score >= 88 ? "High fit" : score >= 74 ? "Strong fit" : "Emerging fit",
+        reasons,
+      };
+    })
+    .sort((a, b) => b.score - a.score);
+};
 
 export const createIdeaWorkspace = async (
   idea: IdeaItem,

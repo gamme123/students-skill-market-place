@@ -40,9 +40,11 @@ import {
   createIdeaDraft,
   fetchIdeaComments,
   fetchIdeaHubFeed,
+  fetchIdeaWorkspaces,
   getIdeaFollowingState,
   getIdeaHubActivitySnapshot,
   getCurrentIdeaInteraction,
+  getIdeaIntelligenceScore,
   requestIdeaCollaboration,
   toggleFollowedCategory,
   toggleFollowedIdea,
@@ -97,8 +99,16 @@ const IdeaHub = () => {
     queryKey: ["idea-hub"],
     queryFn: fetchIdeaHubFeed,
   });
+  const workspacesQuery = useQuery({
+    queryKey: ["idea-workspaces"],
+    queryFn: fetchIdeaWorkspaces,
+  });
 
   const ideas = data ?? [];
+  const workspaceMap = useMemo(
+    () => new Map((workspacesQuery.data ?? []).map((workspace) => [workspace.ideaId, workspace])),
+    [workspacesQuery.data],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -381,6 +391,7 @@ const IdeaHub = () => {
               const interaction = getCurrentIdeaInteraction(idea.id);
               const selectedRole = joinRole[idea.id] ?? idea.rolesNeeded[0] ?? "Developer";
               const ideaScore = getIdeaScore(idea.votes, idea.joinRequests, idea.difficulty, idea.startupMode);
+              const intelligenceScore = getIdeaIntelligenceScore(idea, workspaceMap.get(idea.id));
               const comments = commentsByIdea[idea.id] ?? [];
               const currentJourneyIndex = journeySteps.indexOf(idea.stage);
 
@@ -438,10 +449,14 @@ const IdeaHub = () => {
                     </div>
                   </div>
 
-                  <div className="mt-5 grid gap-3 md:grid-cols-5">
+                  <div className="mt-5 grid gap-3 md:grid-cols-6">
                     <div className="rounded-2xl bg-background/75 p-4">
                       <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Idea score</p>
                       <p className="mt-2 text-xl font-bold text-foreground">{ideaScore}/10</p>
+                    </div>
+                    <div className="rounded-2xl bg-background/75 p-4">
+                      <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Intelligence</p>
+                      <p className="mt-2 text-xl font-bold text-foreground">{intelligenceScore}/99</p>
                     </div>
                     <div className="rounded-2xl bg-background/75 p-4">
                       <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Trend score</p>
