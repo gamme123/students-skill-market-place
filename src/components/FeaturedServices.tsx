@@ -19,10 +19,10 @@ const FeaturedServices = () => {
       <div className="container mx-auto px-4">
         <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary">Curated marketplace</p>
-            <h2 className="font-display mt-3 text-3xl font-bold text-foreground md:text-4xl">High-signal services from rising builders, specialists, and tutors</h2>
+            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary">Live marketplace preview</p>
+            <h2 className="font-display mt-3 text-3xl font-bold text-foreground md:text-4xl">A sample of what active listings can look like inside StudentHub</h2>
             <p className="mt-3 max-w-2xl text-muted-foreground">
-              StudentHub highlights offers that feel practical, portfolio-worthy, and globally relevant across code, design, research, teaching, and digital execution.
+              These cards are marketplace examples, not the whole product story. The goal is to combine real listings like these with stronger identity, collaboration, trust, and portfolio systems.
             </p>
           </div>
           <Button variant="ghost" asChild className="hidden sm:flex">
