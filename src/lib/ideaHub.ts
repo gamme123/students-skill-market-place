@@ -402,6 +402,18 @@ const mapLocalFeed = () => {
     });
 };
 
+const mergeIdeaFeeds = (primaryIdeas: IdeaItem[], fallbackIdeas: IdeaItem[]) => {
+  const seenIds = new Set(primaryIdeas.map((idea) => idea.id));
+  return [
+    ...primaryIdeas,
+    ...fallbackIdeas.filter((idea) => !seenIds.has(idea.id)),
+  ].sort((a, b) => {
+    const scoreDelta = b.trendScore - a.trendScore;
+    if (scoreDelta !== 0) return scoreDelta;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+};
+
 const isSchemaError = (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
   return (
@@ -546,8 +558,10 @@ const groupByWorkspaceId = <T extends { workspace_id: string }>(rows: T[]) =>
   );
 
 export const fetchIdeaHubFeed = async (): Promise<IdeaItem[]> => {
+  const fallbackFeed = mapLocalFeed();
+
   if (!isSupabaseConfigured) {
-    return mapLocalFeed();
+    return fallbackFeed;
   }
 
   try {
@@ -558,7 +572,7 @@ export const fetchIdeaHubFeed = async (): Promise<IdeaItem[]> => {
       .order("created_at", { ascending: false });
 
     if (ideaError) throw ideaError;
-    if (!ideaRows?.length) return mapLocalFeed();
+    if (!ideaRows?.length) return fallbackFeed;
 
     const userIds = [...new Set(ideaRows.map((idea) => idea.user_id))];
     const ideaIds = ideaRows.map((idea) => idea.id);
@@ -586,7 +600,7 @@ export const fetchIdeaHubFeed = async (): Promise<IdeaItem[]> => {
     const joinsByIdea = groupByIdeaId(joins ?? []);
     const commentsByIdea = groupByIdeaId(comments ?? []);
 
-    return ideaRows.map((idea) => {
+    const liveIdeas = ideaRows.map((idea) => {
       const mapped = mapSupabaseIdea(
         idea,
         profileMap.get(idea.user_id),
@@ -597,11 +611,13 @@ export const fetchIdeaHubFeed = async (): Promise<IdeaItem[]> => {
       ensureLocalInteraction(mapped);
       return mapped;
     });
+
+    return mergeIdeaFeeds(liveIdeas, fallbackFeed);
   } catch (error) {
     if (!isSchemaError(error)) {
       console.error("Failed to fetch Idea Hub feed", error);
     }
-    return mapLocalFeed();
+    return fallbackFeed;
   }
 };
 
