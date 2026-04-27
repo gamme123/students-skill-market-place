@@ -64,10 +64,6 @@ const CollaborationPage = () => {
     }
   }, [selectedWorkspaceId, workspacesQuery.data]);
 
-  useEffect(() => {
-    setProjectTitle(selectedWorkspace?.launch.projectTitle ?? "");
-  }, [selectedWorkspace?.id, selectedWorkspace?.launch.projectTitle]);
-
   const workspaceMap = useMemo(
     () => new Map(workspaces.map((workspace) => [workspace.ideaId, workspace])),
     [workspaces],
@@ -84,6 +80,11 @@ const CollaborationPage = () => {
   );
 
   const selectedWorkspace = workspaces.find((workspace) => workspace.id === selectedWorkspaceId) ?? null;
+
+  useEffect(() => {
+    setProjectTitle(selectedWorkspace?.launch.projectTitle ?? "");
+  }, [selectedWorkspace?.id, selectedWorkspace?.launch.projectTitle]);
+
   const selectedWorkspaceHealth = useMemo(() => getWorkspaceHealth(selectedWorkspace), [selectedWorkspace]);
   const contributionBoard = useMemo(() => getWorkspaceContributionSnapshot(selectedWorkspace), [selectedWorkspace]);
   const coFounderMatches = useMemo(() => getCoFounderMatches(selectedWorkspace, selectedRole), [selectedWorkspace, selectedRole]);
