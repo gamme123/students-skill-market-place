@@ -1,6 +1,7 @@
+import { useEffect, useState } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { BadgeCheck, BookOpen, BriefcaseBusiness, CheckCircle2, GraduationCap, PencilLine, ShieldCheck, Sparkles, Star } from "lucide-react";
+import { BadgeCheck, BookOpen, BriefcaseBusiness, CheckCircle2, GraduationCap, Lightbulb, PencilLine, ShieldCheck, Sparkles, Star, Users2 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ServiceCard from "@/components/ServiceCard";
@@ -8,9 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchCurrentUserProfile, fetchCurrentUserServices } from "@/lib/marketplace";
+import { getIdeaContributionSummary } from "@/lib/ideaHub";
 
 const Profile = () => {
   const { user, loading } = useAuth();
+  const [ideaSummary, setIdeaSummary] = useState(() => getIdeaContributionSummary(user?.id));
 
   const profileQuery = useQuery({
     queryKey: ["profile", user?.id],
@@ -23,6 +26,10 @@ const Profile = () => {
     queryFn: () => fetchCurrentUserServices(user?.id),
     enabled: Boolean(user?.id),
   });
+
+  useEffect(() => {
+    setIdeaSummary(getIdeaContributionSummary(user?.id));
+  }, [user?.id]);
 
   if (!loading && !user) {
     return <Navigate to="/auth" replace />;
@@ -54,7 +61,8 @@ const Profile = () => {
       (user?.email_confirmed_at ? 15 : 0) +
       (profile?.bio ? 15 : 0) +
       (profile?.university ? 10 : 0) +
-      Math.min(25, services.length * 8),
+      Math.min(20, services.length * 6) +
+      Math.min(18, ideaSummary.totalIdeas * 6),
   );
 
   const portfolioHighlights = services.slice(0, 3).map((service, index) => ({
@@ -228,6 +236,73 @@ const Profile = () => {
               </p>
               <Button asChild className="mt-6">
                 <Link to="/explore">Study the marketplace</Link>
+              </Button>
+            </div>
+          )}
+        </section>
+
+        <section className="mt-10">
+          <div className="mb-6">
+            <p className="text-sm font-semibold uppercase tracking-[0.26em] text-primary">Idea Hub contributions</p>
+            <h2 className="font-display mt-3 text-3xl font-bold text-foreground">Founder signals on your profile</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-7 text-muted-foreground">
+              StudentHub should show not only what you sell, but also what you invent, validate, and lead with other students.
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-2xl border border-border bg-background p-5">
+              <div className="flex items-center gap-3">
+                <Lightbulb className="h-5 w-5 text-primary" />
+                <span className="text-sm font-medium text-muted-foreground">Ideas posted</span>
+              </div>
+              <p className="mt-3 text-2xl font-bold text-foreground">{ideaSummary.totalIdeas}</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-background p-5">
+              <div className="flex items-center gap-3">
+                <Star className="h-5 w-5 text-accent" />
+                <span className="text-sm font-medium text-muted-foreground">Total votes earned</span>
+              </div>
+              <p className="mt-3 text-2xl font-bold text-foreground">{ideaSummary.totalVotes}</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-background p-5">
+              <div className="flex items-center gap-3">
+                <Users2 className="h-5 w-5 text-emerald-600" />
+                <span className="text-sm font-medium text-muted-foreground">Join requests received</span>
+              </div>
+              <p className="mt-3 text-2xl font-bold text-foreground">{ideaSummary.totalJoinRequests}</p>
+            </div>
+          </div>
+
+          {ideaSummary.authoredIdeas.length ? (
+            <div className="mt-6 grid gap-5 lg:grid-cols-3">
+              {ideaSummary.authoredIdeas.slice(0, 3).map((idea) => (
+                <div key={idea.id} className="glass-panel rounded-[1.6rem] border border-white/70 p-6 shadow-card">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">{idea.category}</p>
+                    <BadgeCheck className="h-4 w-4 text-primary" />
+                  </div>
+                  <h3 className="mt-4 font-display text-xl font-bold text-foreground">{idea.title}</h3>
+                  <p className="mt-3 text-sm leading-7 text-muted-foreground">{idea.stage} stage with {idea.interestLevel.toLowerCase()} interest.</p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl bg-background/70 p-4 text-sm text-foreground">
+                      <span className="font-semibold">Votes:</span> {idea.votes}
+                    </div>
+                    <div className="rounded-2xl bg-background/70 p-4 text-sm text-foreground">
+                      <span className="font-semibold">Join requests:</span> {idea.joinRequests}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-6 rounded-3xl border border-dashed border-border bg-secondary/40 p-10 text-center">
+              <h3 className="font-display text-xl font-semibold text-foreground">No Idea Hub contributions yet</h3>
+              <p className="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">
+                Publish your first idea to start building founder credibility and collaboration momentum on your profile.
+              </p>
+              <Button asChild className="mt-6">
+                <Link to="/ideas">Open Idea Hub</Link>
               </Button>
             </div>
           )}

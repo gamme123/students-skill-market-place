@@ -1,4 +1,6 @@
 export type IdeaVisibility = "Public" | "Private" | "Team";
+export type IdeaStage = "Concept" | "Validation" | "Building" | "Ready for Marketplace";
+export type IdeaDifficulty = "Beginner" | "Intermediate" | "Advanced";
 export type CollaborationRole = "Developer" | "Designer" | "Researcher" | "Strategist" | "Writer";
 
 export interface IdeaItem {
@@ -8,28 +10,31 @@ export interface IdeaItem {
   category: string;
   tags: string[];
   visibility: IdeaVisibility;
-  stage: "Concept" | "Validation" | "Building" | "Ready for Marketplace";
-  difficulty: "Beginner" | "Intermediate" | "Advanced";
+  stage: IdeaStage;
+  difficulty: IdeaDifficulty;
   trendScore: number;
   votes: number;
   comments: number;
+  joinRequests: number;
   interestLevel: string;
   aiFeedback: string;
   author: string;
   authorTitle: string;
+  authorUserId?: string;
   rolesNeeded: CollaborationRole[];
   conversionPath: string;
+  createdAt: string;
+  isUserGenerated?: boolean;
 }
 
-export const ideaCategories = [
-  "AI",
-  "Web",
-  "Research",
-  "Business",
-  "EdTech",
-  "Health",
-  "Design",
-  "Climate",
+export const ideaCategories = ["AI", "Web", "Research", "Business", "EdTech", "Health", "Design", "Climate"];
+
+export const collaborationRoles: CollaborationRole[] = [
+  "Developer",
+  "Designer",
+  "Researcher",
+  "Strategist",
+  "Writer",
 ];
 
 export const ideas: IdeaItem[] = [
@@ -46,12 +51,15 @@ export const ideas: IdeaItem[] = [
     trendScore: 96,
     votes: 214,
     comments: 42,
+    joinRequests: 19,
     interestLevel: "Very high",
-    aiFeedback: "Strong market relevance. Clear educational pain point and strong room for portfolio + subscription value.",
+    aiFeedback:
+      "Strong market relevance. Clear educational pain point and strong room for portfolio and subscription value.",
     author: "Helen M.",
     authorTitle: "Product-minded CS student",
     rolesNeeded: ["Developer", "Designer", "Researcher"],
     conversionPath: "Could become a SaaS study product and a tutoring marketplace add-on.",
+    createdAt: "2026-04-16T09:30:00.000Z",
   },
   {
     id: "idea-2",
@@ -66,12 +74,15 @@ export const ideas: IdeaItem[] = [
     trendScore: 88,
     votes: 163,
     comments: 25,
+    joinRequests: 12,
     interestLevel: "High",
-    aiFeedback: "Good collaboration potential. Attractive for designers and founders; strongest if paired with templates and consulting offers.",
+    aiFeedback:
+      "Good collaboration potential. Attractive for designers and founders; strongest if paired with templates and consulting offers.",
     author: "Daniel K.",
     authorTitle: "Student founder and brand designer",
     rolesNeeded: ["Designer", "Strategist", "Writer"],
     conversionPath: "Can convert into a sellable marketplace package, template store, or founder services bundle.",
+    createdAt: "2026-04-18T13:00:00.000Z",
   },
   {
     id: "idea-3",
@@ -86,12 +97,15 @@ export const ideas: IdeaItem[] = [
     trendScore: 84,
     votes: 141,
     comments: 31,
+    joinRequests: 9,
     interestLevel: "Growing",
-    aiFeedback: "Strong academic workflow relevance. Needs milestone, role, and document support to stand out.",
+    aiFeedback:
+      "Strong academic workflow relevance. Needs milestone, role, and document support to stand out.",
     author: "Meron A.",
     authorTitle: "Research lead",
     rolesNeeded: ["Researcher", "Developer", "Strategist"],
     conversionPath: "Can evolve into a team workspace and academic project management product.",
+    createdAt: "2026-04-20T08:15:00.000Z",
   },
   {
     id: "idea-4",
@@ -106,11 +120,14 @@ export const ideas: IdeaItem[] = [
     trendScore: 79,
     votes: 122,
     comments: 18,
+    joinRequests: 7,
     interestLevel: "High",
-    aiFeedback: "Very practical and monetizable. Best positioned as a services category plus portfolio accelerator.",
+    aiFeedback:
+      "Very practical and monetizable. Best positioned as a services category plus portfolio accelerator.",
     author: "Abel T.",
     authorTitle: "Creator growth specialist",
     rolesNeeded: ["Strategist", "Writer", "Designer"],
     conversionPath: "Can become both a marketplace category and a micro-incubator for creator service teams.",
+    createdAt: "2026-04-12T15:00:00.000Z",
   },
 ];

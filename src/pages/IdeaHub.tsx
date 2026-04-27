@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowRight,
   Bot,
@@ -10,14 +11,32 @@ import {
   Rocket,
   Search,
   Sparkles,
+  ThumbsUp,
   Users2,
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { ideas, ideaCategories } from "@/data/ideas";
+import {
+  collaborationRoles,
+  ideaCategories,
+  type CollaborationRole,
+  type IdeaDifficulty,
+  type IdeaStage,
+  type IdeaVisibility,
+} from "@/data/ideas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  createIdeaDraft,
+  getCurrentIdeaInteraction,
+  getIdeaHubFeed,
+  requestIdeaCollaboration,
+  voteForIdea,
+} from "@/lib/ideaHub";
+import { toast } from "sonner";
 
 const roleTone: Record<string, string> = {
   Developer: "bg-primary/10 text-primary",
@@ -27,9 +46,28 @@ const roleTone: Record<string, string> = {
   Writer: "bg-violet-500/10 text-violet-700",
 };
 
+const stageOptions: IdeaStage[] = ["Concept", "Validation", "Building", "Ready for Marketplace"];
+const difficultyOptions: IdeaDifficulty[] = ["Beginner", "Intermediate", "Advanced"];
+const visibilityOptions: IdeaVisibility[] = ["Public", "Private", "Team"];
+
+const defaultForm = {
+  title: "",
+  description: "",
+  category: "AI",
+  visibility: "Public" as IdeaVisibility,
+  stage: "Concept" as IdeaStage,
+  difficulty: "Beginner" as IdeaDifficulty,
+  tags: "",
+  rolesNeeded: ["Developer"] as CollaborationRole[],
+};
+
 const IdeaHub = () => {
+  const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
+  const [ideas, setIdeas] = useState(() => getIdeaHubFeed());
+  const [form, setForm] = useState(defaultForm);
+  const [joinRole, setJoinRole] = useState<Record<string, CollaborationRole>>({});
 
   const filteredIdeas = useMemo(() => {
     return ideas.filter((idea) => {
@@ -43,10 +81,99 @@ const IdeaHub = () => {
 
       return matchesCategory && matchesQuery;
     });
-  }, [activeCategory, query]);
+  }, [activeCategory, ideas, query]);
 
   const trendingIdeas = [...ideas].sort((a, b) => b.trendScore - a.trendScore).slice(0, 3);
-  const recommendedIdeas = [...ideas].sort((a, b) => b.votes - a.votes).slice(0, 2);
+  const recommendedIdeas = [...ideas]
+    .sort((a, b) => b.votes + b.joinRequests - (a.votes + a.joinRequests))
+    .slice(0, 2);
+
+  const userCreatedIdeas = user ? ideas.filter((idea) => idea.authorUserId === user.id) : [];
+
+  const refreshIdeas = () => setIdeas(getIdeaHubFeed());
+
+  const toggleRole = (role: CollaborationRole) => {
+    setForm((current) => ({
+      ...current,
+      rolesNeeded: current.rolesNeeded.includes(role)
+        ? current.rolesNeeded.filter((item) => item !== role)
+        : [...current.rolesNeeded, role],
+    }));
+  };
+
+  const handlePostIdea = () => {
+    if (!user) {
+      toast.error("Sign in first to post an idea.");
+      return;
+    }
+
+    if (!form.title.trim() || !form.description.trim()) {
+      toast.error("Add a title and description so your idea is clear.");
+      return;
+    }
+
+    if (!form.rolesNeeded.length) {
+      toast.error("Choose at least one collaborator role.");
+      return;
+    }
+
+    createIdeaDraft(
+      {
+        title: form.title,
+        description: form.description,
+        category: form.category,
+        visibility: form.visibility,
+        stage: form.stage,
+        difficulty: form.difficulty,
+        rolesNeeded: form.rolesNeeded,
+        tags: form.tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+      },
+      {
+        userId: user.id,
+        displayName: user.user_metadata?.display_name || user.email?.split("@")[0] || "Student founder",
+        title: "Idea author and builder",
+      },
+    );
+
+    setForm(defaultForm);
+    refreshIdeas();
+    toast.success("Your idea is now live in Idea Hub.");
+  };
+
+  const handleVote = (ideaId: string) => {
+    const result = voteForIdea(ideaId);
+    if (!result.ok) {
+      toast.message("You already voted for this idea in this browser.");
+      return;
+    }
+
+    refreshIdeas();
+    toast.success("Vote recorded.");
+  };
+
+  const handleJoin = (ideaId: string) => {
+    if (!user) {
+      toast.error("Sign in first to request collaboration.");
+      return;
+    }
+
+    const chosenRole = joinRole[ideaId] ?? "Developer";
+    const result = requestIdeaCollaboration(ideaId, chosenRole);
+    if (!result.ok) {
+      toast.message(
+        result.reason === "already-joined"
+          ? `You already requested to join this idea as ${result.joinedRole?.toLowerCase()}.`
+          : "This join request could not be saved.",
+      );
+      return;
+    }
+
+    refreshIdeas();
+    toast.success(`Collaboration request sent as ${chosenRole.toLowerCase()}.`);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -58,7 +185,7 @@ const IdeaHub = () => {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-white/12 px-4 py-2 text-sm font-medium text-white/90">
                 <Sparkles className="h-4 w-4" />
-                StudentHub Idea Hub MVP
+                StudentHub Idea Hub
               </div>
               <h1 className="font-display mt-6 max-w-3xl text-4xl font-bold leading-tight md:text-5xl">
                 Share ideas, find collaborators, validate demand, and turn concepts into real projects.
@@ -69,11 +196,11 @@ const IdeaHub = () => {
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
-                <Button variant="secondary" size="lg">
+                <Button variant="secondary" size="lg" onClick={() => document.getElementById("idea-post-form")?.scrollIntoView({ behavior: "smooth" })}>
                   Post an idea
                 </Button>
-                <Button variant="outline" size="lg" className="border-white/30 text-white hover:bg-white/10">
-                  Request collaboration
+                <Button variant="outline" size="lg" className="border-white/30 text-white hover:bg-white/10" asChild>
+                  <Link to={user ? "/profile" : "/auth"}>{user ? "View your profile" : "Sign in to collaborate"}</Link>
                 </Button>
               </div>
             </div>
@@ -85,8 +212,8 @@ const IdeaHub = () => {
                     <Lightbulb className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold">Idea posting</p>
-                    <p className="text-xs text-muted-foreground">Title, category, tags, stage, and visibility</p>
+                    <p className="text-sm font-semibold">Live idea posting</p>
+                    <p className="text-xs text-muted-foreground">Post concepts now and keep them after refresh</p>
                   </div>
                 </div>
               </div>
@@ -96,19 +223,19 @@ const IdeaHub = () => {
                     <Users2 className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold">Collaboration requests</p>
-                    <p className="text-xs text-muted-foreground">Developers, designers, researchers, and strategists</p>
+                    <p className="text-sm font-semibold">Join requests</p>
+                    <p className="text-xs text-muted-foreground">Students can pick a role and request to collaborate</p>
                   </div>
                 </div>
               </div>
               <div className="glass-panel rounded-[1.5rem] border border-white/70 p-5 text-foreground shadow-card">
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-700">
-                    <Bot className="h-5 w-5" />
+                    <ThumbsUp className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold">AI feedback direction</p>
-                    <p className="text-xs text-muted-foreground">Validation cues and smarter matching roadmap</p>
+                    <p className="text-sm font-semibold">Persistent voting</p>
+                    <p className="text-xs text-muted-foreground">Momentum signals survive browser refreshes</p>
                   </div>
                 </div>
               </div>
@@ -116,14 +243,138 @@ const IdeaHub = () => {
           </div>
         </section>
 
-        <section className="mt-10 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <section id="idea-post-form" className="mt-10 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+          <div className="glass-panel rounded-[1.8rem] border border-white/70 p-6 shadow-card">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.26em] text-primary">Post an idea</p>
+                <h2 className="font-display mt-3 text-3xl font-bold text-foreground">Launch a real concept into StudentHub</h2>
+                <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                  This MVP saves your ideas in the browser right now, so the flow already works on the live site while we prepare deeper backend storage.
+                </p>
+              </div>
+              <div className="rounded-2xl bg-primary/10 px-4 py-3 text-right text-sm">
+                <p className="font-semibold text-primary">{userCreatedIdeas.length}</p>
+                <p className="text-muted-foreground">Ideas you posted</p>
+              </div>
+            </div>
+
+            {user ? (
+              <div className="mt-6 space-y-4">
+                <Input
+                  placeholder="Idea title"
+                  value={form.title}
+                  onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
+                  className="h-12 rounded-2xl"
+                />
+                <Textarea
+                  placeholder="Describe the problem, the opportunity, and why students should care."
+                  value={form.description}
+                  onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+                  className="min-h-32 rounded-2xl"
+                />
+
+                <div className="grid gap-4 md:grid-cols-3">
+                  <select
+                    className="h-12 rounded-2xl border border-input bg-background px-4 text-sm"
+                    value={form.category}
+                    onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}
+                  >
+                    {ideaCategories.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className="h-12 rounded-2xl border border-input bg-background px-4 text-sm"
+                    value={form.stage}
+                    onChange={(event) => setForm((current) => ({ ...current, stage: event.target.value as IdeaStage }))}
+                  >
+                    {stageOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className="h-12 rounded-2xl border border-input bg-background px-4 text-sm"
+                    value={form.visibility}
+                    onChange={(event) => setForm((current) => ({ ...current, visibility: event.target.value as IdeaVisibility }))}
+                  >
+                    {visibilityOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-[1fr_220px]">
+                  <Input
+                    placeholder="Tags, separated by commas"
+                    value={form.tags}
+                    onChange={(event) => setForm((current) => ({ ...current, tags: event.target.value }))}
+                    className="h-12 rounded-2xl"
+                  />
+                  <select
+                    className="h-12 rounded-2xl border border-input bg-background px-4 text-sm"
+                    value={form.difficulty}
+                    onChange={(event) => setForm((current) => ({ ...current, difficulty: event.target.value as IdeaDifficulty }))}
+                  >
+                    {difficultyOptions.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Roles you want to recruit</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {collaborationRoles.map((role) => {
+                      const selected = form.rolesNeeded.includes(role);
+                      return (
+                        <button
+                          key={role}
+                          type="button"
+                          className={`rounded-full px-4 py-2 text-xs font-medium transition-colors ${
+                            selected
+                              ? "bg-primary text-primary-foreground"
+                              : "border border-border bg-background text-muted-foreground hover:text-foreground"
+                          }`}
+                          onClick={() => toggleRole(role)}
+                        >
+                          {role}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <Button className="rounded-xl" onClick={handlePostIdea}>
+                  Publish idea
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="mt-6 rounded-[1.5rem] border border-dashed border-border bg-secondary/40 p-6">
+                <p className="text-sm leading-7 text-muted-foreground">
+                  Sign in to publish ideas, build your founder profile, and start receiving collaboration requests.
+                </p>
+                <Button className="mt-4 rounded-xl" asChild>
+                  <Link to="/auth">Sign in to post</Link>
+                </Button>
+              </div>
+            )}
+          </div>
+
           <div className="rounded-[1.8rem] border border-border bg-card p-6 shadow-card">
             <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.26em] text-primary">Idea discovery</p>
-                <h2 className="font-display mt-3 text-3xl font-bold text-foreground">
-                  Explore trending and recommended concepts
-                </h2>
+                <h2 className="font-display mt-3 text-3xl font-bold text-foreground">Explore live concepts and momentum signals</h2>
               </div>
               <div className="inline-flex items-center gap-2 rounded-2xl border border-border px-4 py-3 text-sm text-muted-foreground">
                 <Filter className="h-4 w-4" />
@@ -154,9 +405,16 @@ const IdeaHub = () => {
                 ))}
               </div>
             </div>
+          </div>
+        </section>
 
-            <div className="mt-8 space-y-4">
-              {filteredIdeas.map((idea) => (
+        <section className="mt-10 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-4">
+            {filteredIdeas.map((idea) => {
+              const interaction = getCurrentIdeaInteraction(idea.id);
+              const selectedRole = joinRole[idea.id] ?? idea.rolesNeeded[0] ?? "Developer";
+
+              return (
                 <div key={idea.id} className="glass-panel rounded-[1.5rem] border border-white/70 p-5 shadow-card">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="max-w-3xl">
@@ -173,6 +431,9 @@ const IdeaHub = () => {
                         <Badge variant="secondary" className="rounded-full">
                           {idea.difficulty}
                         </Badge>
+                        {idea.isUserGenerated ? (
+                          <Badge className="rounded-full bg-emerald-600 text-white hover:bg-emerald-600">New</Badge>
+                        ) : null}
                       </div>
                       <h3 className="font-display mt-4 text-2xl font-bold text-foreground">{idea.title}</h3>
                       <p className="mt-3 text-sm leading-7 text-muted-foreground">{idea.description}</p>
@@ -217,8 +478,8 @@ const IdeaHub = () => {
                       <p className="mt-2 text-xl font-bold text-foreground">{idea.votes}</p>
                     </div>
                     <div className="rounded-2xl bg-background/75 p-4">
-                      <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Comments</p>
-                      <p className="mt-2 text-xl font-bold text-foreground">{idea.comments}</p>
+                      <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Join requests</p>
+                      <p className="mt-2 text-xl font-bold text-foreground">{idea.joinRequests}</p>
                     </div>
                     <div className="rounded-2xl bg-background/75 p-4">
                       <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Interest</p>
@@ -234,16 +495,30 @@ const IdeaHub = () => {
                     <p className="mt-2 text-sm leading-7 text-muted-foreground">{idea.aiFeedback}</p>
                   </div>
 
-                  <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
                     <p className="text-sm text-muted-foreground">
                       <span className="font-semibold text-foreground">Idea to project path:</span> {idea.conversionPath}
                     </p>
-                    <div className="flex flex-wrap gap-3">
-                      <Button variant="outline" className="rounded-xl">
-                        Join idea
+                    <div className="flex flex-wrap gap-2">
+                      <select
+                        className="h-10 rounded-xl border border-input bg-background px-3 text-sm"
+                        value={selectedRole}
+                        onChange={(event) =>
+                          setJoinRole((current) => ({ ...current, [idea.id]: event.target.value as CollaborationRole }))
+                        }
+                      >
+                        {idea.rolesNeeded.map((role) => (
+                          <option key={role} value={role}>
+                            {role}
+                          </option>
+                        ))}
+                      </select>
+                      <Button variant="outline" className="rounded-xl" onClick={() => handleJoin(idea.id)}>
+                        {interaction?.joinedRole ? `Joined as ${interaction.joinedRole}` : "Join idea"}
                       </Button>
-                      <Button variant="outline" className="rounded-xl">
-                        Vote and comment
+                      <Button variant="outline" className="rounded-xl" onClick={() => handleVote(idea.id)}>
+                        <ThumbsUp className="mr-2 h-4 w-4" />
+                        {interaction?.voted ? "Voted" : "Upvote"}
                       </Button>
                       <Button className="rounded-xl">
                         Convert to project
@@ -252,8 +527,8 @@ const IdeaHub = () => {
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
 
           <div className="space-y-6">
@@ -270,7 +545,7 @@ const IdeaHub = () => {
                   <div key={idea.id} className="rounded-[1.3rem] border border-border/70 bg-background/75 p-4">
                     <p className="text-sm font-semibold text-foreground">{idea.title}</p>
                     <p className="mt-2 text-xs leading-6 text-muted-foreground">
-                      {idea.interestLevel} interest • {idea.votes} votes • {idea.comments} comments
+                      {idea.interestLevel} interest • {idea.votes} votes • {idea.joinRequests} join requests
                     </p>
                   </div>
                 ))}
@@ -301,15 +576,15 @@ const IdeaHub = () => {
               <div className="flex items-center gap-3">
                 <MessageSquareText className="h-5 w-5 text-emerald-700" />
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-700">Collaboration flow</p>
-                  <h3 className="font-display text-2xl font-bold text-foreground">How MVP collaboration can work</h3>
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-700">Live progress</p>
+                  <h3 className="font-display text-2xl font-bold text-foreground">What is working now</h3>
                 </div>
               </div>
               <div className="mt-5 space-y-3 text-sm leading-7 text-muted-foreground">
-                <p>1. A student posts an idea with category, stage, tags, and visibility.</p>
-                <p>2. Other students discover it, vote, and request to join with a clear role.</p>
-                <p>3. The idea owner forms a team and opens a workspace direction.</p>
-                <p>4. The team can later convert the idea into a project or marketplace service.</p>
+                <p>1. Students can post ideas with category, stage, tags, and visibility.</p>
+                <p>2. Other students can upvote and request to join ideas with a specific role.</p>
+                <p>3. New ideas and interaction counts persist after refresh in the live browser.</p>
+                <p>4. Profile pages can now reflect Idea Hub contribution signals.</p>
               </div>
             </div>
 
@@ -318,14 +593,14 @@ const IdeaHub = () => {
                 <Rocket className="h-5 w-5 text-primary" />
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Roadmap</p>
-                  <h3 className="font-display text-2xl font-bold text-foreground">What comes after MVP</h3>
+                  <h3 className="font-display text-2xl font-bold text-foreground">What comes after this layer</h3>
                 </div>
               </div>
               <div className="mt-5 space-y-3 text-sm leading-7 text-muted-foreground">
-                <p>- AI idea generation and evaluator</p>
-                <p>- Co-founder matching and multilingual idea translation</p>
-                <p>- Polls, milestone tracking, and private workspaces</p>
-                <p>- Conversion from idea to active team project dashboard</p>
+                <p>- Persist ideas in Supabase with real multi-user collaboration</p>
+                <p>- Add comments, polls, and team workspaces</p>
+                <p>- Connect Idea Hub conversion into services and project dashboards</p>
+                <p>- Introduce AI idea generation, evaluator feedback, and co-founder matching</p>
               </div>
             </div>
           </div>
