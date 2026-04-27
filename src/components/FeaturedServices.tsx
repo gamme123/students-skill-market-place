@@ -19,10 +19,10 @@ const FeaturedServices = () => {
       <div className="container mx-auto px-4">
         <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary">Marketplace picks</p>
-            <h2 className="mt-3 text-3xl font-bold text-foreground md:text-4xl">Featured student services</h2>
+            <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary">Curated marketplace</p>
+            <h2 className="font-display mt-3 text-3xl font-bold text-foreground md:text-4xl">High-signal services from rising builders, specialists, and tutors</h2>
             <p className="mt-3 max-w-2xl text-muted-foreground">
-              Fresh offers from students who can help with projects, tutoring, creative work, and technical support.
+              StudentHub highlights offers that feel practical, portfolio-worthy, and globally relevant across code, design, research, teaching, and digital execution.
             </p>
           </div>
           <Button variant="ghost" asChild className="hidden sm:flex">

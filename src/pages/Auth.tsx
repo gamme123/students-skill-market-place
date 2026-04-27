@@ -87,8 +87,8 @@ const Auth = () => {
                 Global account access powered by Supabase
               </div>
 
-              <h1 className="mt-8 max-w-lg text-4xl font-bold leading-tight">
-                {isSignUp ? "Create your SkillSwap account" : "Welcome back to your global workspace"}
+              <h1 className="font-display mt-8 max-w-lg text-4xl font-bold leading-tight">
+                {isSignUp ? "Create your StudentHub account" : "Welcome back to your global workspace"}
               </h1>
               <p className="mt-4 max-w-xl text-sm leading-7 text-white/85">
                 {isSignUp

@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 const navItems = [
   { label: "Explore", to: "/explore" },
-  { label: "Categories", to: "/explore?cat=web-dev" },
+  { label: "Marketplace", to: "/explore?cat=web-dev" },
   { label: "How It Works", to: "/how-it-works" },
 ];
 
@@ -24,7 +24,7 @@ const Header = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-card/85 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-border/60 bg-background/78 backdrop-blur-xl">
       <div className="container mx-auto flex h-18 items-center justify-between px-4 py-4">
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-3">
@@ -32,8 +32,8 @@ const Header = () => {
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-lg font-extrabold tracking-tight text-foreground">SkillSwap</p>
-              <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Global talent marketplace</p>
+              <p className="font-display text-lg font-bold tracking-tight text-foreground">StudentHub</p>
+              <p className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground">Global Student Marketplace</p>
             </div>
           </Link>
 
@@ -78,8 +78,8 @@ const Header = () => {
               <Button variant="outline" size="sm" asChild>
                 <Link to="/auth">Sign In</Link>
               </Button>
-              <Button size="sm" asChild>
-                <Link to="/auth?signup=true">Join Free</Link>
+              <Button size="sm" className="shadow-card" asChild>
+                <Link to="/auth?signup=true">Launch Profile</Link>
               </Button>
             </>
           )}
